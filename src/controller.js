@@ -31,7 +31,7 @@ cards have a format
    },
    cardactions: {
       [{
-         exec:
+         exec: return Observable
 	 desc:
       }]
    },
@@ -57,7 +57,7 @@ const ControllerFactory = function(game_state) {
     let applyActions = (gs, evt, next) => {
 
 
-	let collectactivablecards = gs => {
+	let collectactivateablecards = gs => {
 	    let activecards = List()
 	    let pushCard = (stage, pos) => {
 		let c = gs.getIn([currentplayer(gs), 'stage', stage, pos])
@@ -69,37 +69,45 @@ const ControllerFactory = function(game_state) {
 	    pushCard('center','right')
 	    pushCard('back','left')
 	    pushCard('back','right')
-	    return activecards.concat(gs.getIn([currentplayer(gs), 'level'])).concat(gs.getIn([currentplayer(gs),'clock'])).concat(gs.getIn([currentplayer(gs),'memory'])).concate(gs.getIn([currentplayer(gs), 'waiting_room']))
+	    return activecards.concat(gs.getIn([currentplayer(gs), 'level'])).concat(gs.getIn([currentplayer(gs),'clock'])).concat(gs.getIn([currentplayer(gs),'memory'])).concat(gs.getIn([currentplayer(gs), 'waiting_room']))
 	}
 
-	activecards.forEach( T => {
-	    gs = T.getIn('passiveactions')(gs, evt)
+	collectactivateablecards(gs).forEach( T => {
+	    let f = undefined;
+	    if(f =  T.getIn(['passiveactions']))
+		gs = f(gs, evt)
 	    return true;
 	})
 
-	let getcardactions = deck => {
-	    let l = deck.first()
-	    if(iscard(l)) {
+	let getcardactions = deck => deck.update(0,
+						 l => {
+						     if(iscard(l)) {
+							 
+							 return l.updateIn(['cardactions'], _ => {
+							     let f = undefined;
+							     if(f = l.getIn(['availablecardactions'])) {
+								 let cardactions = f(gs, evt)
+								 return cardactions.map( action => {
+								     return action.updateIn(['exec'], exec => {
+									 return _ => {
+									     exec(gs)
+										 .subscribe(gs => {
+										     if(next)
+											 next(gs)
+										 })
+									     
+									 }
+									 
+								     })
+								 })
+							     }
+							 })
+						     }
+						     return l
+						 })
+									  
 
-		return deck.updateIn(['cardactions'], _ => {
-		    let cardactions = deck.getIn(['availablecardactions'])(gs, evt)
-		    return cardactions.map( action => {
-			return action.updateIn(['exec'], exec => {
-			    return _ => {
-				exec(gs)
-				    .subscribe(gs => {
-					       if(next)
-						   next(gs)
-				    })
-					      
-			    }
-			    
-			})
-		    })
-		})
-	    }
-	    return deck;
-	}
+	
 
 	
 	// add available actions to the card these are abilites that require user input ( choose, pay, whatever )
@@ -136,10 +144,13 @@ const ControllerFactory = function(game_state) {
     let updateUI= (evt, func) => {
 	return gs => {
 	    
-	    let f = func || (o => (gs => o.next(gs)))
+	    let f = func || (o => (gs => {
+		o.next(gs)
+		o.complete()
+	    }))
 	    
 	    return create(obs => {
-		_ui.updateUI(applyActions(gs,evt,f(obs)), evt)
+		_ui.updateUI(applyActions(gs,evt,f(obs)), obs, evt)
 	    })
 	}
     }
@@ -210,6 +221,21 @@ const ControllerFactory = function(game_state) {
     let isevent = card => {
 	return card.getIn(['info','power']) == undefined;
     }
+
+    // shuffle the deck
+    let shuffle = deck => {
+	return deck;
+    }
+    
+    // refreshes deck and sets apply refresh to true
+    let refresh = gs => {
+	if(gs.getIn([currentplayer(gs), 'deck']).size === 0) {
+	    let waiting_room = gs.getIn([currentplayer(gs),'waiting_room'])
+	    
+	    return gs.setIn([currentplayer(gs), 'deck'], shuffle(waiting_room)).setIn([currentplayer(gs), 'waiting_room'], List()).setIn(['applyrefreshdamage'], waiting_room.size > 0)
+	}
+	return gs;
+    }
     
     return {
 
@@ -265,32 +291,46 @@ const ControllerFactory = function(game_state) {
 		return card
 	    })
 
-	    
+
 	    let standLC = gs => gs.updateIn([currentplayer(gs), 'stage', 'center', 'left'], standcard)
 	    
 	    let standCC = gs => gs.updateIn([currentplayer(gs), 'stage', 'center', 'middle'], standcard)
 
 	    let standRC = gs => gs.updateIn([currentplayer(gs), 'stage', 'center', 'right'], standcard)
-
-	    return of(_gs.updateIn(['phase'], 'standup'))
+	    let player = currentplayer(_gs)
+	    return of(_gs.setIn(['phase'], 'standup'))
+		.mergeMap(updateUI({evt:"phase_begin"}))
 		.map(standLC)
-		.mergeMap(updateUI({evt:"stand",pos:[currentplayer(gs),'stage','center','left']}))
+		.mergeMap(updateUI({evt:"stand",pos:[player,'stage','center','left']}))
 		.map(standCC)
-		.mergeMap(updateUI({ evt: "stand", pos: [currentplayer(gs), 'stage','center','middle']}))
+		.mergeMap(updateUI({ evt: "stand", pos: [player, 'stage','center','middle']}))
 		.map(standRC)
-		.mergeMap(updateUI({ evt: "stand", pos: [currentplayer(gs), 'stage','center','right']}))
+		.mergeMap(updateUI({ evt: "stand", pos: [player, 'stage','center','right']}))
 
 	    
 	},
 	draw() {
 	    let drawIt = gs => {
+		gs = refresh(gs)
+
+		// deck should be non-zero
 		let deck = gs.getIn([currentplayer(gs), 'deck'])
+		
 		let card = deck.first();
-		return gs.updateIn([currentplayer(gs), 'hand'], hand => hand.push(card))
-		    .updateIn([currentplayer(gs), 'deck'], deck => deck.shift())
+		return refresh(gs.updateIn([currentplayer(gs), 'hand'], hand => iscard(card) ? hand.push(card) : hand)
+			       .updateIn([currentplayer(gs), 'deck'], deck => deck.shift()))
 	    }
-	    return of(_gs.updateIn(['phase'], 'draw')).
-		map(drawIt)
+	    return of(_gs.updateIn(['phase'], _ => 'draw'))
+		.map(drawIt)
+		.mergeMap(gs => {
+		    if(gs.getIn(['applyrefreshdamage'])) {
+			let card = gs.getIn([currentplayer(gs), 'deck'])
+			return of(gs.updateIn(['applyrefreshdamage'], false)
+				  .updateIn([currentplayer(gs), 'deck'], deck => deck.shift())
+				  .updateIn([currentplayer(gs), 'clock'], clock => clock.insert(0, card)))
+		    }
+		    return of(gs)
+		})
 		.mergeMap(updateUI({ evt: "draw" }))
 	},
 	clock() {
