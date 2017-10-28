@@ -206,6 +206,11 @@ const ControllerFactory = function(game_state) {
     
     return {
 
+	updategamestate(gs) {
+	    if(gs !== undefined)
+		_gs = gs;
+	},
+
 	// function to regster the ui to call back to
 	registerUI(ui) {
 	    _ui = ui;

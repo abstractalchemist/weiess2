@@ -62,6 +62,7 @@ const implcollectplayercards = function(player, gs) {
 	.concat(gs.getIn([player, 'waiting_room']))
 }
 
+// collects all cards that could possibly have an affect on the game through either passive or active abilities
 const collectactivateablecards = function(gs) {
     return implcollectplayercards(currentplayer(gs), gs).concat(implcollectplayercards(inactiveplayer(gs), gs))
 }
