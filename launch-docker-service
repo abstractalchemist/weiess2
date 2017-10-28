@@ -1,0 +1,25 @@
+#!/bin/bash
+
+SERVER_NAME=${1:-server}
+shift
+start() {
+    docker run -d -p 8081:80 --name $SERVER_NAME -v $(pwd)/build:/www -v $(pwd)/default.conf:/etc/nginx/conf.d/default.conf nginx
+}
+
+stop() {
+    docker rm -f $SERVER_NAME
+}
+
+while [[ $# -gt 0 ]]
+do
+    case $1 in
+	--start)
+	    start
+	    ;;
+	--stop)
+	    stop
+	    ;;
+	       
+    esac
+    shift
+done

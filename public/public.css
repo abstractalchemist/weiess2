@@ -1,0 +1,12 @@
+.spacer {
+    height:10rem;
+}
+
+.card {
+//    height:10rem;
+    border:5px double blue;
+}
+
+.game-card {
+    width:100%;
+}
