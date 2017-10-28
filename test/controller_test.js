@@ -144,4 +144,59 @@ describe('ControllerFactory', function() {
 		})
 
     })
+
+    it('clock no cards', function(done) {
+	let gs = GameStateFactory().setIn(['turn'], 0);
+	let controller = ControllerFactory(gs)
+	let ui = {
+	    updateUI(gs, obs, evt) {
+		obs.next(gs)
+		obs.complete()
+	    }
+	}
+	controller.registerUI(ui)
+	controller.clock()
+	    .subscribe(
+		g => {
+		    gs = g
+		},
+		err => {
+		    done(err)
+		},
+		_ => {
+		    expect(gs.getIn([currentplayer(gs), 'clock']).size).to.equal(0)
+		    done()
+		})
+    })
+    it('clock', function(done) {
+	let gs = GameStateFactory().setIn(['turn'], 0)
+	gs = gs.updateIn([currentplayer(gs), 'hand'], hand => hand.push(fromJS( {
+	    info: { id: 0 },
+	    active: {}
+	})))
+	let controller = ControllerFactory(gs)
+	let ui = {
+	    updateUI(gs, obs, evt) {
+		let hand = gs.getIn([currentplayer(gs),'hand'])
+		console.log(hand.first())
+		hand.first().getIn(['actions']).first().getIn(['exec'])()
+		obs.next(gs)
+		obs.complete()
+	    }
+	}
+	
+	controller.registerUI(ui)
+	controller.clock()
+	    .subscribe(
+		g => {
+		    gs = g
+		},
+		err => {
+		    done(err)
+		},
+		_ => {
+		    expect(gs.getIn([currentplayer(gs), 'clock']).size).to.equal(1)
+		    done()
+		})
+    })
 })

@@ -3,7 +3,7 @@ import { currentplayer } from './game_state'
 import React from 'react'
 import StageSelector from './stageselector'
 const { of, create } = Observable;
-import { isImmutable, List } from 'immutable'
+import { isImmutable, List, fromJS } from 'immutable'
 
 /*
 
@@ -327,7 +327,7 @@ const ControllerFactory = function(game_state) {
 			let card = gs.getIn([currentplayer(gs), 'deck'])
 			return of(gs.updateIn(['applyrefreshdamage'], false)
 				  .updateIn([currentplayer(gs), 'deck'], deck => deck.shift())
-				  .updateIn([currentplayer(gs), 'clock'], clock => clock.insert(0, card)))
+				  .updateIn([currentplayer(gs), 'clock'], clock => iscard(card) ? clock.insert(0, card) : clock))
 		    }
 		    return of(gs)
 		})
@@ -335,11 +335,12 @@ const ControllerFactory = function(game_state) {
 	},
 	clock() {
 
+	    // the card that should be clocked
 	    let clockIt = undefined;
 	    
 	    let clock = gs => {
 		return gs.updateIn([currentplayer(gs), 'hand'], hand => {
-		    return hand.map(c => c.updateIn(['actions'], _ => [
+		    return hand.map(c => c.updateIn(['actions'], _ => fromJS([
 			{
 			    exec() {
 				clockIt = c.getIn(['info','id'])
@@ -347,7 +348,7 @@ const ControllerFactory = function(game_state) {
 			    },
 			    desc: "Clock"
 			}
-		    ]))
+		    ])))
 		})
 	    }
 	    return of(_gs)
@@ -356,8 +357,9 @@ const ControllerFactory = function(game_state) {
 		.map(gs => {
 		    let hand = gs.getIn([currentplayer(gs), 'hand'])
 		    let card = hand.findIndex(c => clockIt === c.getIn(['info','id']))
+		    let c = hand.get(card)
 		    return gs.updateIn([currentplayer(gs), 'hand'], hand => hand.delete(card))
-			.updateIn([currentplayer(gs), 'clock'], clock => clock.insert(0, card))
+			.updateIn([currentplayer(gs), 'clock'], clock => iscard(c) ? clock.insert(0, c) : clock)
 		    
 		})
 	    
