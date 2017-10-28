@@ -1,6 +1,8 @@
 import { expect } from 'chai'
 import ControllerFactory from '../src/controller'
-import GameStateFactory, { currentplayer } from '../src/game_state'
+import GameStateFactory from '../src/game_state'
+
+import { currentplayer } from '../src/utils'
 import { fromJS } from 'immutable'
 
 describe('ControllerFactory', function() {
@@ -178,7 +180,7 @@ describe('ControllerFactory', function() {
 	let ui = {
 	    updateUI(gs, obs, evt) {
 		let hand = gs.getIn([currentplayer(gs),'hand'])
-		console.log(hand.first())
+//		console.log(hand.first())
 		hand.first().getIn(['actions']).first().getIn(['exec'])()
 		obs.next(gs)
 		obs.complete()

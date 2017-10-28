@@ -32,13 +32,5 @@ const GameStateFactory = function() {
     })
 }
 
-function currentplayer(gs) {
-    if(!gs)
-	throw "currentplayer(gs) parameter null"
 
-    if(gs.getIn(['turn']) === undefined)
-	throw "invalid turn defined"
-    return `player${gs.getIn(['turn']) % 2 + 1}`
-}
-
-export { GameStateFactory as default, currentplayer }
+export { GameStateFactory as default }

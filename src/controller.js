@@ -1,9 +1,9 @@
 import { Observable } from 'rxjs'
-import { currentplayer } from './game_state'
 import React from 'react'
 import StageSelector from './stageselector'
 const { of, create } = Observable;
 import { isImmutable, List, fromJS } from 'immutable'
+import { debug, iscard, currentplayer, findopenpositions, collectactivateablecards } from './utils'
 
 /*
 
@@ -48,29 +48,11 @@ const ControllerFactory = function(game_state) {
     let _ui = undefined;
     let _gs = game_state;
 
-    // returns true if c is a card
-    let iscard = function(c) {
-	return c !== undefined && isImmutable(c) && c.has('active') && c.has('info');
-    }
 
     // apply all currently available continous actions and attaches active actions ( which require input from the user ) to activate
-    let applyActions = (gs, evt, next) => {
+    const applyActions = (gs, evt, next) => {
 
 
-	let collectactivateablecards = gs => {
-	    let activecards = List()
-	    let pushCard = (stage, pos) => {
-		let c = gs.getIn([currentplayer(gs), 'stage', stage, pos])
-		if(iscard(c.first()))
-		    activecards = activecards.push(c.first())
-	    }
-	    pushCard('center','left')
-	    pushCard('center','middle')
-	    pushCard('center','right')
-	    pushCard('back','left')
-	    pushCard('back','right')
-	    return activecards.concat(gs.getIn([currentplayer(gs), 'level'])).concat(gs.getIn([currentplayer(gs),'clock'])).concat(gs.getIn([currentplayer(gs),'memory'])).concat(gs.getIn([currentplayer(gs), 'waiting_room']))
-	}
 
 	collectactivateablecards(gs).forEach( T => {
 	    let f = undefined;
@@ -141,7 +123,7 @@ const ControllerFactory = function(game_state) {
     }
     
     // update ui with the given event
-    let updateUI= (evt, func) => {
+    const updateUI= (evt, func) => {
 	return gs => {
 	    
 	    let f = func || (o => (gs => {
@@ -171,21 +153,6 @@ const ControllerFactory = function(game_state) {
 	  gs.getIn([currentplayer(gs), 'level']).size >= h.getIn(['active','level'])(gs) )
     }
 
-    let findopenpositions = gs => {
-	let positions = []
-
-	if(iscard(gs.getIn([currentplayer(gs), 'stage', 'center', 'left']).first()))
-	    positions.push(['center','left'])
-	if(iscard(gs.getIn([currentplayer(gs), 'stage', 'center', 'middle']).first()))
-	    positions.push(['center','middle'])
-	if(iscard(gs.getIn([currentplayer(gs), 'stage', 'center', 'right']).first()))
-	    positions.push(['center','right'])
-	if(iscard(gs.getIn([currentplayer(gs), 'stage', 'back', 'left']).first()))
-	    positions.push(['center','left'])
-	if(iscard(gs.getIn([currentplayer(gs), 'stage', 'back', 'right']).first()))
-	    positions.push(['back','right'])
-	return positions;
-    }
 
     let playCard = (gs, card, deststage, destpos) => {
 	if(canplay(gs, card)) {
