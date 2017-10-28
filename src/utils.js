@@ -44,7 +44,7 @@ const findopenpositions = function(gs) {
 }
 
 const implcollectplayercards = function(player, gs) {
-//    console.log(`looking at ${player} cards`)
+    //    console.log(`looking at ${player} cards`)
     let activecards = List()
     const pushCard = (stage, pos) => {
 	let c = gs.getIn([player, 'stage', stage, pos])
@@ -61,6 +61,18 @@ const implcollectplayercards = function(player, gs) {
 	.concat(gs.getIn([player,'memory']))
 	.concat(gs.getIn([player, 'waiting_room']))
 }
+
+function shuffle(deck) {
+    let current = []
+    while(deck.size > 0) {
+	let index = Math.floor(Math.random() * deck.size)
+	let c = deck.get(index)
+	deck = deck.delete(index)
+	current.push(c)
+    }
+    return fromJS(current)
+}
+
 
 // collects all cards that could possibly have an affect on the game through either passive or active abilities
 const collectactivateablecards = function(gs) {
@@ -97,4 +109,25 @@ function debug(field, gs) {
     
 }
 
-export { debug, iscard, findopenpositions, currentplayer, collectactivateablecards, inactiveplayer }
+// event cards will not have a power
+const isevent = function(card) {
+    return iscard(card) && card.getIn(['info','power']) == undefined;
+}
+
+// climax cards have no level and no power
+const isclimax = function(card) {
+    return iscard(card) && card.getIn(['info','power']) === undefined && card.getIn(['active','level']) === undefined;
+}
+
+// refreshes deck and sets apply refresh to true
+const refresh = function(gs) {
+    if(gs.getIn([currentplayer(gs), 'deck']).size === 0) {
+	let waiting_room = gs.getIn([currentplayer(gs),'waiting_room'])
+	
+	return gs.setIn([currentplayer(gs), 'deck'], shuffle(waiting_room)).setIn([currentplayer(gs), 'waiting_room'], List()).setIn(['applyrefreshdamage'], waiting_room.size > 0)
+    }
+    return gs;
+}
+
+
+export { debug, iscard, findopenpositions, currentplayer, collectactivateablecards, inactiveplayer, shuffle, isevent, refresh, isclimax }

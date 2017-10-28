@@ -5,6 +5,6 @@ import ControllerFactory from './controller'
 import GameStateFactory from './game_state'
 
 document.addEventListener('DOMContentLoaded', _ => {
-    
-    ReactDOM.render(<Main controller={ControllerStateFactory(GameStateFactory())}/>, document.querySelector('#content'))
+    let gs = undefined
+    ReactDOM.render(<Main controller={ControllerStateFactory(gs = GameStateFactory())} game_state={gs}/>, document.querySelector('#content'))
 })

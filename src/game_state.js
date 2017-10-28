@@ -19,7 +19,9 @@ function createfield() {
 	level:[],
 	waiting_room:[],
 	deck:[],
-	hand:[]
+	climax:[],
+	hand:[],
+	stock:[]
     }
 }
 

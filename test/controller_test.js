@@ -4,44 +4,11 @@ import GameStateFactory from '../src/game_state'
 
 import { currentplayer } from '../src/utils'
 import { fromJS } from 'immutable'
-
-function init(phase, turn, ui = {
-    updateUI(gs, obs, evt) {
-	obs.next(gs)
-	obs.complete();
-    }
-}) {
-    let gs = GameStateFactory();
-    gs = gs.setIn(['turn'], turn).setIn(['phase'], phase)
-    let controller = ControllerFactory(gs)
-    controller.registerUI(ui)
-    return [gs, controller]
-}
-
-function randId() {
-    return Math.floor(Math.random() * 1000)
-}
-
-function basecard(id = randId()) {
-    return fromJS({
-	active:{},
-	info:{ id }})
-}
-
-function basestack(id = randId()) {
-    return fromJS([
-	{
-	    active:{},
-	    info:{ id }
-	}
-    ])
-}
+import { init, basecard, basestack } from './utils'
 
 describe('ControllerFactory', function() {
     it('standup', function(done) {
-	let gf = undefined;
-	let controller = undefined;
-	[gf, controller] = init('standup', 0)
+	let [gf, controller] = init('standup', 0)
 	controller.updategamestate(gf.setIn(['phase'], 'standup')
 				   .updateIn([currentplayer(gf), 'stage', 'center'], center => {
 				       return center.setIn(['left'], basestack())
@@ -67,8 +34,8 @@ describe('ControllerFactory', function() {
 		})
     })
     it('standup no stage cards', function(done) {
-	let gs, controller;
-	[gs, controller ] = init('standup', 0)
+	//	let gs, controller;
+	let [gs, controller ] = init('standup', 0)
 
 	controller.standup()
 	    .subscribe(
@@ -83,15 +50,8 @@ describe('ControllerFactory', function() {
 		})
     })
     it('draw no cards', function(done) {
-	let gs = GameStateFactory().setIn(['turn'],0).setIn(['phase'],'draw')
-	let controller = ControllerFactory(gs)
-	let ui = {
-	    updateUI(gs, obs, evt) {
-		obs.next(gs)
-		obs.complete()
-	    }
-	}
-	controller.registerUI(ui)
+	let [gs, controller] = init('draw', 0)
+	
 	expect(gs.getIn([currentplayer(gs), 'hand']).size).to.equal(0)
 	expect(gs.getIn([currentplayer(gs), 'deck']).size).to.equal(0)
 	controller.draw()
@@ -110,25 +70,9 @@ describe('ControllerFactory', function() {
     })
 
     it('draw', function(done) {
-	let gs = GameStateFactory().setIn(['turn'],0).setIn(['phase'],'draw');
-	gs = gs.updateIn([currentplayer(gs), 'deck'], deck => deck.push(fromJS(
-	    {
-		info: {},
-		active: {}
-	    }),
-									fromJS(
-									    {
-										info: {},
-										active: {}
-									    })))
-	let controller = ControllerFactory(gs)
-	let ui = {
-	    updateUI(gs, obs, evt) {
-		obs.next(gs)
-		obs.complete()
-	    }
-	}
-	controller.registerUI(ui)
+	let [gs, controller] = init('draw', 0);
+	controller.updategamestate(gs = gs.updateIn([currentplayer(gs), 'deck'], deck => deck.push(basecard(), basecard())))
+	
 	expect(gs.getIn([currentplayer(gs), 'deck']).size).to.equal(2)
 	expect(gs.getIn([currentplayer(gs), 'hand']).size).to.equal(0)
 	controller.draw()
@@ -148,15 +92,7 @@ describe('ControllerFactory', function() {
     })
 
     it('clock no cards', function(done) {
-	let gs = GameStateFactory().setIn(['turn'], 0);
-	let controller = ControllerFactory(gs)
-	let ui = {
-	    updateUI(gs, obs, evt) {
-		obs.next(gs)
-		obs.complete()
-	    }
-	}
-	controller.registerUI(ui)
+	let [gs, controller] = init('clock', 0)
 	controller.clock()
 	    .subscribe(
 		g => {
@@ -170,24 +106,21 @@ describe('ControllerFactory', function() {
 		    done()
 		})
     })
+    
     it('clock', function(done) {
-	let gs = GameStateFactory().setIn(['turn'], 0)
-	gs = gs.updateIn([currentplayer(gs), 'hand'], hand => hand.push(fromJS( {
-	    info: { id: 0 },
-	    active: {}
-	})))
-	let controller = ControllerFactory(gs)
-	let ui = {
+	let card = basecard()
+	let [gs, controller] = init('clock', 0, {
 	    updateUI(gs, obs, evt) {
 		let hand = gs.getIn([currentplayer(gs),'hand'])
 		//		console.log(hand.first())
-		hand.first().getIn(['actions']).first().getIn(['exec'])()
-		obs.next(gs)
-		obs.complete()
+		hand.first().getIn(['actions']).first().getIn(['exec'])().subscribe(gs => {
+		    obs.next(gs)
+		    obs.complete()
+		})
 	    }
-	}
-	
-	controller.registerUI(ui)
+	})
+	controller.updategamestate(gs = gs.updateIn([currentplayer(gs), 'hand'], hand => hand.push(card)))
+
 	controller.clock()
 	    .subscribe(
 		g => {
@@ -200,5 +133,63 @@ describe('ControllerFactory', function() {
 		    expect(gs.getIn([currentplayer(gs), 'clock']).size).to.equal(1)
 		    done()
 		})
+    })
+
+    xit('main', function(done) {
+	let [gs, controller] = init('main', 0)
+
+	controller.main()
+	    .subscribe(
+		g => {
+		    gs = g
+		},
+		err => {
+		    done(err)
+		},
+		_ => {
+		    done()
+		})
+		
+    })
+
+    it('climax', function(done) {
+	let [gs, controller] = init('climax', 0,  {
+	    updateUI(gs, obs, evt) {
+		
+		if(evt.when !== 'begin') {
+		    expect(evt.evt).to.equal('climax')
+		    let hand = gs.getIn([currentplayer(gs), 'hand'])
+		    let climax = hand.first();
+		    let exec = climax.getIn(['actions']).first().getIn(['exec']);
+		    // we exec this
+		    exec().subscribe(gs => {
+			obs.next(gs)
+			obs.complete()
+		    })
+		
+		}
+		else {
+		    obs.next(gs)
+		    obs.complete()
+		}
+	    }	    
+	})
+	controller.updategamestate(gs.updateIn([currentplayer(gs), 'hand'], hand => hand.push(basecard())))
+	
+	controller.climax()
+	    .subscribe(
+		g => {
+		    gs = g
+		},
+		err => {
+		    done(err)
+		},
+		_ => {
+//		    console.log(gs)
+		    let climaxarea = gs.getIn([currentplayer(gs), 'climax']);
+		    expect(climaxarea.size).to.equal(1)
+		    done()
+		})
+		       
     })
 })

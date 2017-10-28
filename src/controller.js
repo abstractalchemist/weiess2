@@ -3,7 +3,7 @@ import React from 'react'
 import StageSelector from './stageselector'
 const { of, create } = Observable;
 import { isImmutable, List, fromJS } from 'immutable'
-import { debug, iscard, currentplayer, findopenpositions, collectactivateablecards } from './utils'
+import { shuffle, debug, iscard, currentplayer, findopenpositions, collectactivateablecards, isevent, refresh, isclimax } from './utils'
 
 /*
 
@@ -37,7 +37,7 @@ cards have a format
    },
    actions: {
       [{
-         exec:
+         exec: return Observable
 	 desc:
       }] 
    }
@@ -50,6 +50,8 @@ const ControllerFactory = function(game_state) {
 
 
     // apply all currently available continous actions and attaches active actions ( which require input from the user ) to activate
+    // gs - gamestate
+    // evt - the event that occurred
     const applyActions = (gs, evt, next) => {
 
 
@@ -123,6 +125,8 @@ const ControllerFactory = function(game_state) {
     }
     
     // update ui with the given event
+    // evt - the event that occurred
+    // func - 
     const updateUI= (evt, func) => {
 	return gs => {
 	    
@@ -184,25 +188,6 @@ const ControllerFactory = function(game_state) {
 
     }
 
-    // event cards will not have a power
-    let isevent = card => {
-	return card.getIn(['info','power']) == undefined;
-    }
-
-    // shuffle the deck
-    let shuffle = deck => {
-	return deck;
-    }
-    
-    // refreshes deck and sets apply refresh to true
-    let refresh = gs => {
-	if(gs.getIn([currentplayer(gs), 'deck']).size === 0) {
-	    let waiting_room = gs.getIn([currentplayer(gs),'waiting_room'])
-	    
-	    return gs.setIn([currentplayer(gs), 'deck'], shuffle(waiting_room)).setIn([currentplayer(gs), 'waiting_room'], List()).setIn(['applyrefreshdamage'], waiting_room.size > 0)
-	}
-	return gs;
-    }
     
     return {
 
@@ -316,7 +301,7 @@ const ControllerFactory = function(game_state) {
 			{
 			    exec() {
 				clockIt = c.getIn(['info','id'])
-				
+				return of(gs)
 			    },
 			    desc: "Clock"
 			}
@@ -348,7 +333,7 @@ const ControllerFactory = function(game_state) {
 		return gs => {
 		    return gs.updateIn([currentplayer(gs), 'stage', srcstage, srcpos], cards => cards.update(0, card => {
 			if(iscard(card))
-			    return card.updateIn(['actions'], _ => [
+			    return card.updateIn(['actions'], _ => fromJS([
 				{
 				    exec() {
 					ui.prompt(<StageSelector onselect={
@@ -374,7 +359,7 @@ const ControllerFactory = function(game_state) {
 				    },
 				    desc: "Move"
 				}
-			    ])
+			    ]))
 			return card
 		    }))
 		}
@@ -390,7 +375,7 @@ const ControllerFactory = function(game_state) {
 					([deststage, destpos]) => {
 					    action = gs => {
 					
-						return playcard(gs, h, deststage, destpos)
+						return of(playcard(gs, h, deststage, destpos))
 					    }
 					}
 				    } openpositions={
@@ -414,7 +399,7 @@ const ControllerFactory = function(game_state) {
 		
 	    }
 
-	    return of(_gs.updateIn(['phase'], 'main'))
+	    return of(_gs.updateIn(['phase'], _ => 'main'))
 		.map(moveCardActions('center','left'))
 	    	.map(moveCardActions('center','middle'))
 	    	.map(moveCardActions('center','right'))
@@ -432,9 +417,41 @@ const ControllerFactory = function(game_state) {
 		    if(action) {
 			_gs = action(gs);
 		    }
-		    return main()
+		    return this.main()
 		})
+	},
+	climax() {
+	    let selectclimax = gs => {
+		return gs.updateIn([currentplayer(gs), 'hand'], hand => {
+		    return hand.map(c => {
+//			console.log(`updating ${c}`)
+			return c.updateIn(['actions'], _ => {
+			    return fromJS([
+				{
+				    exec() {
+					let hand = gs.getIn([currentplayer(gs), 'hand'])
+					let index = hand.findIndex(c1 => c1.getIn(['info','id']) === c.getIn(['info','id']))
+					let card = hand.get(index)
+					if(index >= 0 && isclimax(card)) {
+					    return of(gs.updateIn([currentplayer(gs), 'hand'], hand => hand.delete(index)).updateIn([currentplayer(gs), 'climax'], _ => List().push(card)))
+					}
+					return of(gs)
+				    },
+				    desc: "Play climax card"
+				    
+				}
+			    ])
+			})
+		    })
+		})
+	    }
+	    return of(_gs)
+		.mergeMap(updateUI({evt:"climax",when:"begin"}))
+		.map(selectclimax)
+		.mergeMap(updateUI({evt:"climax"}))
+			
 	}
+    
 	
     }
 }

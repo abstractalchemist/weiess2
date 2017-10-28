@@ -1,15 +1,5 @@
 import { fromJS } from 'immutable'
-
-function shuffle(deck) {
-    let current = []
-    while(deck.size > 0) {
-	let index = Math.floor(Math.random() * deck.size)
-	let c = deck.get(index)
-	deck = deck.delete(index)
-	current.push(c)
-    }
-    return fromJS(current)
-}
+import { shuffle } from './utils'
 
 function choose(values) {
     let val = Math.floor( Math.random() * values.length );
