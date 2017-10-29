@@ -27,6 +27,24 @@ function inactiveplayer(gs) {
 
 }
 
+function getposition(location) {
+    return (gs, player) => {
+	player = player || currentplayer(gs)
+	return gs.getIn([player, location])
+    }
+}
+
+const G = {
+    stock:getposition('stock'),
+    stage:getposition('stage'),
+    hand:getposition('hand'),
+    deck:getposition('deck'),
+    memory:getposition('memory'),
+    clock:getposition('clock'),
+    waiting_room:getposition('waiting_room'),
+    level:getposition('level')
+}
+
 const findopenpositions = function(gs) {
     let positions = []
 
@@ -56,10 +74,10 @@ const implcollectplayercards = function(player, gs) {
     pushCard('center','right')
     pushCard('back','left')
     pushCard('back','right')
-    return activecards.concat(gs.getIn([player, 'level']))
-	.concat(gs.getIn([player,'clock']))
-	.concat(gs.getIn([player,'memory']))
-	.concat(gs.getIn([player, 'waiting_room']))
+    return activecards.concat(G.level(gs, player))
+	.concat(G.clock(gs, player))
+	.concat(G.memory(gs, player))
+	.concat(G.waiting_room(gs, player))
 }
 
 function shuffle(deck) {
@@ -80,17 +98,27 @@ const collectactivateablecards = function(gs) {
 }
 
 function debug(field, gs) {
+
     if(gs === undefined) {
 	return "game_state not passed"
     }
     switch(field) {
     case 'hand':
 	{
+	    return `hand: ${G.hand(gs).map(c => c.getIn(['info','id'])).toJS()}`
 	}
 	break;
     case 'stage':
 	{
 
+	    let stage = G.stage(gs)
+	    let getid = location => {
+		let pos = stage.getIn(location)
+		if(List.isList(pos) && iscard(pos.first()))
+		    return `${location} - ${pos.first().getIn(['info','id'])}`
+	    }
+	    return `center/left: ${getid(['center','left'])}, center/middle: ${getid(['center','middle'])}, center/right: ${getid(['center','right'])}`
+	    
 	}
 	break;
     case 'level':
@@ -122,7 +150,7 @@ const isclimax = function(card) {
 // refreshes deck and sets apply refresh to true
 const refresh = function(gs) {
     if(gs.getIn([currentplayer(gs), 'deck']).size === 0) {
-	let waiting_room = gs.getIn([currentplayer(gs),'waiting_room'])
+	let waiting_room = G.waiting_room(gs)
 	
 	return gs.setIn([currentplayer(gs), 'deck'], shuffle(waiting_room)).setIn([currentplayer(gs), 'waiting_room'], List()).setIn(['applyrefreshdamage'], waiting_room.size > 0)
     }
@@ -133,8 +161,8 @@ const refresh = function(gs) {
 // utility to pay
 const payment = function(cost) {
     return gs => {
-//	console.log(`attempting to pay ${cost}`)
-	let stock = gs.getIn([currentplayer(gs), 'stock'])
+	//	console.log(`attempting to pay ${cost}`)
+	let stock = G.stock(gs)
 	if(stock.size >= cost) {
 	    let payment = stock.slice(0, cost)
 	    let rem = stock.slice(cost)
@@ -153,15 +181,49 @@ const canplay = function(gs, h) {
     return h.getIn(['info','level']) === 0 ||
 
     // have the stock
-    ( h.getIn(['info', 'cost']) <= gs.getIn([currentplayer(gs), 'stock']).size &&
+    ( h.getIn(['info', 'cost']) <= G.stock(gs).size &&
 
       // color is in level or clock
-      ( gs.getIn([currentplayer(gs), 'level']).map(c => c.getIn(['info','color'])).includes( h.getIn(['info', 'color']) ) ||
-	gs.getIn([currentplayer(gs), 'clock']).map(c => c.getIn(['info','color'])).includes( h.getIn(['info', 'color']) ) ) &&
+      ( G.level(gs).map(c => c.getIn(['info','color'])).includes( h.getIn(['info', 'color']) ) ||
+	G.clock(gs).map(c => c.getIn(['info','color'])).includes( h.getIn(['info', 'color']) ) ) &&
 
       // and current level ( this is a function since continous abilites are typically a function of game_state )
-      gs.getIn([currentplayer(gs), 'level']).size >= h.getIn(['active','level'])(gs) )
+      G.level(gs).size >= h.getIn(['active','level'])(gs) )
 }
 
+const findcardonstage = function(gs, card) {
+    let id = card;
+    if(iscard(card))
+	id = card.getIn(['info','id']);
+    let stage = G.stage(gs)
+    let c = undefined;
+    let pos = ['center','left']
+    if(iscard(c = stage.getIn(pos).first())) {
+	if(c.getIn(['info','id']) == id)
+	    return [c, pos]
+    }
+    pos = ['center','middle']
+    if(iscard(c = stage.getIn(pos).first())) {
+	if(c.getIn(['info','id']) == id)
+	    return [c, pos]
+    }
+    pos = ['center','right']
+    if(iscard(c = stage.getIn(pos).first())) {
+	if(c.getIn(['info','id']) == id)
+	    return [c, pos]
+    }
+    pos = ['back','left']
+    if(iscard(c = stage.getIn(pos).first())) {
+	if(c.getIn(['info','id']) == id)
+	    return [c, pos]
+    }
+    pos = ['back','right']
+    if(iscard(c = stage.getIn(pos).first())) {
+	if(c.getIn(['info','id']) == id)
+	    return [c, pos]
+    }
+    return [undefined, []]
+    
+}
 
-export { debug, iscard, findopenpositions, currentplayer, collectactivateablecards, inactiveplayer, shuffle, isevent, refresh, isclimax, canplay, payment }
+export { debug, iscard, findopenpositions, currentplayer, collectactivateablecards, inactiveplayer, shuffle, isevent, refresh, isclimax, canplay, payment, findcardonstage, G }

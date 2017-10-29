@@ -58,7 +58,9 @@ function firstaction(card) {
 	return card.first().getIn(['actions']).first().getIn(['exec'])
 							     
     }
-    return card.getIn(['actions']).first().getIn(['exec'])
+    if(Map.isMap(card))
+	return card.getIn(['actions']).first().getIn(['exec'])
+    return undefined;
 }
 
 const C = {

@@ -2,7 +2,7 @@ import { expect } from 'chai'
 import ControllerFactory from '../src/controller'
 import GameStateFactory from '../src/game_state'
 
-import { currentplayer, iscard } from '../src/utils'
+import { currentplayer, iscard, findcardonstage, debug } from '../src/utils'
 import { List, fromJS } from 'immutable'
 import { init, basecard, basestack, createprompt } from './utils'
 import { payment } from '../src/utils'
@@ -143,41 +143,79 @@ describe('ControllerFactory', function() {
     })
 
     it('main - play a card', function(done) {
+	let passes = 0;
 	let [gs, controller] = init('main', 0, {
 	    updateUI(gs, obs, evt) {
-		
 		let hand = G.hand(gs)
-		if(hand.size > 0) {
+		if(passes++ < 2) {
 		    let card = hand.first();
 		    
-		    let exec = C.firstaction(card)
-		    
-		    // exec called means this card is played
-		    exec().subscribe(gs => {
+		    let exec = undefined;
+		    if(exec = C.firstaction(card)) {
+
+			// exec called means this card is played
+			exec().subscribe(gs => {
+			    obs.next(gs)
+			    obs.complete();
+			})
+		    }
+		    else {
 			obs.next(gs)
-			obs.complete();
-		    })
+			obs.complete()
+		    }
 		}
 
 		// the test empties the hand, so we quite
 		else {
-		    obs.next()
+		    obs.next(gs.setIn(['endmainphase'], true))
 		    obs.complete()
 		}
 	    },
 	    prompt:createprompt()
 	})
-	controller.updategamestate(gs = gs.updateIn([currentplayer(gs), 'hand'], hand => hand.push(basecard().updateIn(['info','level'], _ => 0))))
+	controller.updategamestate(gs = gs.updateIn([currentplayer(gs), 'hand'],
+						    hand => hand.push(basecard(1000, 0).updateIn(['info','level'], _ => 0).updateIn(['passiveactions'], _ => {
+							return (gs, evt) => {
+
+							    
+							    if(evt.evt === 'play' && evt.id === 0) {
+								let [card, pos] = findcardonstage(gs, evt.id)
+								if(iscard(card)) {
+								    return gs.updateIn([currentplayer(gs), 'stage'], stage => {
+									return stage.updateIn(pos, c => {
+									    return c.update(0, card => {
+										return card.updateIn(['active','power'], power => {
+										    return gs => {
+											if(typeof power === 'function')
+											    return power(gs) + 1000
+											return power + 1000
+										    }
+										})
+									    })
+									})
+								    })
+								}
+								
+							    }
+							    return gs;
+							}
+						    }))))
 
 	controller.main()
 	    .subscribe(
 		g => {
-		    gs = g
+		    if(g) {
+			gs = g
+		    }
+		    
 		},
 		err => {
 		    done(err)
 		},
 		_ => {
+		    let c = undefined;
+		    expect(iscard(c = gs.getIn([currentplayer(gs), 'stage', 'center','left']).first())).to.be.true;
+		    expect(c.getIn(['active', 'power'])(gs)).to.be.equal(2000)
 		    done()
 		})
 	
@@ -201,7 +239,8 @@ describe('ControllerFactory', function() {
 
 		// since the test is to move a single card, we just quit here
 		else {
-		    obs.next()
+		    obs.next(gs.setIn(['endmainphase'], true))
+		    
 		    obs.complete()
 		}
 	    },

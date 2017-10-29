@@ -28,17 +28,17 @@ function randId() {
     return Math.floor(Math.random() * 1000)
 }
 
-function basecard(id = randId()) {
+function basecard(power, id = randId()) {
     return fromJS({
-	active:{},
-	info:{ id }})
+	active:{ power },
+	info:{ id, power }})
 }
 
-function basestack(id = randId()) {
+function basestack(power, id = randId()) {
     return fromJS([
 	{
-	    active:{},
-	    info:{ id }
+	    active:{ power },
+	    info:{ id, power }
 	}
     ])
 }

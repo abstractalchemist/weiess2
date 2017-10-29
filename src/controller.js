@@ -3,7 +3,7 @@ import React from 'react'
 import StageSelector from './stageselector'
 const { of, create } = Observable;
 import { isImmutable, List, fromJS } from 'immutable'
-import { shuffle, debug, iscard, currentplayer, findopenpositions, collectactivateablecards, isevent, refresh, isclimax, canplay, payment } from './utils'
+import { shuffle, debug, iscard, currentplayer, findopenpositions, collectactivateablecards, isevent, refresh, isclimax, canplay, payment, G } from './utils'
 
 /*
 
@@ -57,12 +57,11 @@ const ControllerFactory = function(game_state) {
     // evt - the event that occurred
     const applyActions = (gs, evt, next) => {
 
-
-
 	collectactivateablecards(gs).forEach( T => {
 	    let f = undefined;
 	    if(f =  T.getIn(['passiveactions']))
 		gs = f(gs, evt)
+	    
 	    return true;
 	})
 
@@ -107,7 +106,6 @@ const ControllerFactory = function(game_state) {
 	    }
 	}
 
-	
 	// add available actions to the card these are abilites that require user input ( choose, pay, whatever )
 	return gs.updateIn([currentplayer(gs), 'stage'], stage => {
 	    return stage.updateIn(['center'], center => {
@@ -143,7 +141,6 @@ const ControllerFactory = function(game_state) {
     // func - a function to be executed by any activated action; or force the stream to continue
     const updateUI= (evt, func) => {
 	return gs => {
-	    
 	    let f = func || (o => (gs => {
 		o.next(gs)
 		o.complete()
@@ -158,6 +155,7 @@ const ControllerFactory = function(game_state) {
 
 
     let playcard = (gs, card, deststage, destpos) => {
+
 	if(canplay(gs, card)) {
  	    let cost = card.getIn(['info','cost'])
 	    // delete the card from the hand
@@ -199,6 +197,12 @@ const ControllerFactory = function(game_state) {
 	// function to regster the ui to call back to
 	registerUI(ui) {
 	    _ui = ui;
+	},
+
+
+	// this should do some preinitialization of stuff
+	initializeGS() {
+	    
 	},
 
 	// called when current player ends the current phase
@@ -271,7 +275,7 @@ const ControllerFactory = function(game_state) {
 		gs = refresh(gs)
 
 		// deck should be non-zero
-		let deck = gs.getIn([currentplayer(gs), 'deck'])
+		let deck = G.deck(gs)
 		
 		let card = deck.first();
 		return refresh(gs.updateIn([currentplayer(gs), 'hand'], hand => iscard(card) ? hand.push(card) : hand)
@@ -281,7 +285,7 @@ const ControllerFactory = function(game_state) {
 		.map(drawIt)
 		.mergeMap(gs => {
 		    if(gs.getIn(['applyrefreshdamage'])) {
-			let card = gs.getIn([currentplayer(gs), 'deck'])
+			let card = G.deck(gs)
 			return of(gs.updateIn(['applyrefreshdamage'], false)
 				  .updateIn([currentplayer(gs), 'deck'], deck => deck.shift())
 				  .updateIn([currentplayer(gs), 'clock'], clock => iscard(card) ? clock.insert(0, card) : clock))
@@ -312,7 +316,7 @@ const ControllerFactory = function(game_state) {
 		.map(clock)
 		.mergeMap(updateUI({ evt: "clock" }))
 		.map(gs => {
-		    let hand = gs.getIn([currentplayer(gs), 'hand'])
+		    let hand = G.hand(gs)
 		    let card = hand.findIndex(c => clockIt === c.getIn(['info','id']))
 		    let c = hand.get(card)
 		    return gs.updateIn([currentplayer(gs), 'hand'], hand => hand.delete(card))
@@ -352,6 +356,7 @@ const ControllerFactory = function(game_state) {
 							return of(gs
 								  .setIn([currentplayer(gs), 'stage', deststage, destpos], cardpos)
 								  .setIn([currentplayer(gs), 'stage', srcstage, srcpos], List()))
+							  //  .mergeMap(updateUI({ evt: "move", id:cardpos.first().getIn(['info','id']) }))
 							    .subscribe(
 								gs => {
 								    obs(gs)
@@ -387,6 +392,7 @@ const ControllerFactory = function(game_state) {
 						       <StageSelector onselect={
 							   ([deststage, destpos]) => {
 							       return of(playcard(gs, h, deststage, destpos))
+								   .mergeMap(updateUI({ evt: "play", id:h.getIn(['info','id']) }))
 								   .subscribe(gs => {
 								       obs(gs)
 								   })
@@ -424,14 +430,15 @@ const ControllerFactory = function(game_state) {
 		.map(playCardActions)
 		.mergeMap(updateUI({evt:"main"}))
 		.mergeMap(gs => {
-		    // if the game_state isn't returned, we just leave
+
 		    if(gs) {
-			//			console.log(`updating game_state`)
+			
 			_gs = gs
-			//		    if(action) {
-			//			_gs = action(gs);
-			//		    }
-			return this.main()
+			if(!gs.getIn(['endmainphase'])) {
+			    return this.main()
+			}
+			else
+			    _gs = _gs.setIn(['endmainphase'])
 		    }
 		    return of(gs)
 		})
@@ -445,7 +452,7 @@ const ControllerFactory = function(game_state) {
 			    return fromJS([
 				{
 				    exec() {
-					let hand = gs.getIn([currentplayer(gs), 'hand'])
+					let hand = G.hand(gs)
 					let index = hand.findIndex(c1 => c1.getIn(['info','id']) === c.getIn(['info','id']))
 					let card = hand.get(index)
 					if(index >= 0 && isclimax(card)) {
