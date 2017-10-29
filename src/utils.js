@@ -234,4 +234,26 @@ const findcardonstage = function(gs, card) {
     return [undefined, []]
 }
 
-export { debug, iscard, findopenpositions, currentplayer, collectactivateablecards, inactiveplayer, shuffle, isevent, refresh, isclimax, canplay, payment, findcardonstage, findstageposition, G }
+const dealdamage = function(count, gs, cancelable = true) {
+    let canceled = false;
+    let i = 0;
+    let damage =[];
+    while(i++ < count && !canceled) {
+	let dmg = deck.first();
+	deck = deck.shift()
+	if(cancelable && isclimax(dmg)) {
+	    canceled = true;
+	}
+	damage.push(dmg)
+	
+    }
+    if(canceled) {
+	return gs.updateIn([inactiveplayer(gs), 'waiting_room'], wr => fromJS(damage).concat(wr))
+    }
+    else {
+	return gs.updateIn([inactiveplayer(gs), 'clock'], clock => fromJS(damage).concat(clock))
+    }
+
+}
+
+export { debug, iscard, findopenpositions, currentplayer, collectactivateablecards, inactiveplayer, shuffle, isevent, refresh, isclimax, canplay, payment, findcardonstage, findstageposition, G, dealdamage }
