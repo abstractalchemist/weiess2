@@ -162,6 +162,7 @@ const AttackPhase = function(gs, ui) {
 			    .mergeMap(gs => this.damage(gs, _attacking_card))
 			    .map(applyrefreshdamage)
 			    .mergeMap(clockDamage(ui))
+			    .mergeMap(clockDamage(ui, inactiveplayer(gs)))
 			    .mergeMap(gs => {
 				if(_attack_type === 'direct')
 				    return of(gs)

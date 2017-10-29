@@ -158,6 +158,7 @@ const refresh = function(gs) {
     return gs;
 }
 
+// if the flage is set, apply the refresh damage
 const applyrefreshdamage = function(gs) {
     if(gs.getIn(['applyrefreshdamage'])) {
 	let card = G.deck(gs)
