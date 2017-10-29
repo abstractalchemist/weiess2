@@ -9,6 +9,7 @@ import { mount } from 'enzyme'
 
 function init(phase, turn, ui = {
     updateUI(gs, obs, evt) {
+//	console.log(`auto pushing through ui`)
 	obs.next(gs)
 	obs.complete();
 	

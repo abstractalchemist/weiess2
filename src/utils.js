@@ -191,39 +191,47 @@ const canplay = function(gs, h) {
       G.level(gs).size >= h.getIn(['active','level'])(gs) )
 }
 
-const findcardonstage = function(gs, card) {
+const findstageposition = function(gs, card) {
     let id = card;
-    if(iscard(card))
-	id = card.getIn(['info','id']);
     let stage = G.stage(gs)
     let c = undefined;
     let pos = ['center','left']
     if(iscard(c = stage.getIn(pos).first())) {
 	if(c.getIn(['info','id']) == id)
-	    return [c, pos]
+	    return pos
     }
     pos = ['center','middle']
     if(iscard(c = stage.getIn(pos).first())) {
 	if(c.getIn(['info','id']) == id)
-	    return [c, pos]
+	    return pos
     }
     pos = ['center','right']
     if(iscard(c = stage.getIn(pos).first())) {
 	if(c.getIn(['info','id']) == id)
-	    return [c, pos]
+	    return pos
     }
     pos = ['back','left']
     if(iscard(c = stage.getIn(pos).first())) {
 	if(c.getIn(['info','id']) == id)
-	    return [c, pos]
+	    return pos
     }
     pos = ['back','right']
     if(iscard(c = stage.getIn(pos).first())) {
 	if(c.getIn(['info','id']) == id)
-	    return [c, pos]
+	    return pos;
     }
-    return [undefined, []]
-    
+    return undefined;
+
 }
 
-export { debug, iscard, findopenpositions, currentplayer, collectactivateablecards, inactiveplayer, shuffle, isevent, refresh, isclimax, canplay, payment, findcardonstage, G }
+const findcardonstage = function(gs, card) {
+    let id = card;
+    if(iscard(card))
+	id = card.getIn(['info','id'])
+    let pos = findstageposition(gs, id)
+    if(pos)
+	return [G.stage(gs).getIn(pos).first(), pos]
+    return [undefined, []]
+}
+
+export { debug, iscard, findopenpositions, currentplayer, collectactivateablecards, inactiveplayer, shuffle, isevent, refresh, isclimax, canplay, payment, findcardonstage, findstageposition, G }
