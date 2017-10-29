@@ -3,45 +3,48 @@ import React from 'react'
 import StageSelector from './stageselector'
 const { of, create } = Observable;
 import { isImmutable, List, fromJS } from 'immutable'
-import { shuffle, debug, iscard, currentplayer, findopenpositions, collectactivateablecards, isevent, refresh, isclimax } from './utils'
+import { shuffle, debug, iscard, currentplayer, findopenpositions, collectactivateablecards, isevent, refresh, isclimax, canplay, payment } from './utils'
 
 /*
 
-cards have a format 
-{
-   active: {
-      level:,
-      power:,
-   },
-   info: {
-      id:
-      cost:
-      level:
-      power:
-      triggeraction:
-      
-   },
-   // this is a function which applies passive effects to the current game state, and returns the new game state
-   passiveactions: function(gs, evt) {
-      
-   },
+  cards have a format 
+  {
+  active: {
+  level:,
+  power:,
+  },
+  info: {
+  id:
+  cost:
+  level:
+  power:
+  triggeraction:
+  
+  },
+  // this is a function which applies passive effects to the current game state, and returns the new game state
+  passiveactions: function(gs, evt) {
+  
+  },
 
-   // this is a function which return a list of { exec, desc } actions to be executed, or no
-   availableactions: function(gs, evt) {
-   },
-   cardactions: {
-      [{
-         exec: return Observable
-	 desc:
-      }]
-   },
-   actions: {
-      [{
-         exec: return Observable
-	 desc:
-      }] 
-   }
-}
+  // this is a function which return a list of { exec, desc } actions to be executed, or no
+  availableactions: function(gs, evt) {
+  },
+  cardactions: {
+  [{
+  exec(gs, ui): return Observable
+  desc:
+  shortdesc:
+  }]
+  },
+
+  // these are phase related functions, that are not parts of the available actions
+  actions: {
+  [{
+  exec: return Observable
+  desc:
+  }] 
+  }
+  }
 */
 const ControllerFactory = function(game_state) {
 
@@ -65,21 +68,25 @@ const ControllerFactory = function(game_state) {
 
 	let getcardactions = deck => deck.update(0,
 						 l => {
+
 						     if(iscard(l)) {
-							 
+
 							 return l.updateIn(['cardactions'], _ => {
 							     let f = undefined;
+
 							     if(f = l.getIn(['availablecardactions'])) {
+								 //console.log(l)
+								 //console.log(`wrapping ${f}`)
 								 let cardactions = f(gs, evt)
 								 return cardactions.map( action => {
+
 								     return action.updateIn(['exec'], exec => {
 									 return _ => {
-									     exec(gs)
-										 .subscribe(gs => {
-										     if(next)
-											 next(gs)
-										 })
-									     
+									     return exec(gs,_ui).mergeMap(gs => {
+										 if(next)
+										     next(gs)
+										 return of(gs)
+									     })
 									 }
 									 
 								     })
@@ -89,9 +96,16 @@ const ControllerFactory = function(game_state) {
 						     }
 						     return l
 						 })
-									  
-
 	
+
+	let checkavailableactions = (gs) => {
+	    return card => {
+		let f = undefined;
+		if(f = card.getIn(['availableactions']))
+		    return card.updateIn(['cardactions'], _ => f(gs))
+		return card
+	    }
+	}
 
 	
 	// add available actions to the card these are abilites that require user input ( choose, pay, whatever )
@@ -105,20 +119,20 @@ const ControllerFactory = function(game_state) {
 		    return back.updateIn(['left'], getcardactions)
 			.updateIn(['right'], getcardactions)
 		})
-		
+	    
 	    
 	})
 	    .updateIn([currentplayer(gs), 'level'], level => {
-		return level.map(l => l.updateIn(['cardactions'], _ => l.getIn(['availablecardactions'])(gs)))
+		return level.map(checkavailableactions(gs))
 	    })
 	    .updateIn([currentplayer(gs), 'clock'], clock => {
-		return clock.map(l => l.updateIn(['cardactions'], _ => l.getIn(['availablecardactions'])(gs)))
+		return clock.map(checkavailableactions(gs))
 	    })
 	    .updateIn([currentplayer(gs), 'memory'], memory => {
-		return memory.map(l => l.updateIn(['cardactions'], _ => l.getIn(['availablecardactions'])(gs)))
+		return memory.map(checkavailableactions(gs))
 	    })
 	    .updateIn([currentplayer(gs), 'waiting_room'], waiting_room => {
-		return waiting_room.map(l => l.updateIn(['cardactions'], _ => l.getIn(['availablecardactions'])(gs)))
+		return waiting_room.map(checkavailableactions(gs))
 	    })
 	
 	
@@ -126,7 +140,7 @@ const ControllerFactory = function(game_state) {
     
     // update ui with the given event
     // evt - the event that occurred
-    // func - 
+    // func - a function to be executed by any activated action; or force the stream to continue
     const updateUI= (evt, func) => {
 	return gs => {
 	    
@@ -141,27 +155,11 @@ const ControllerFactory = function(game_state) {
 	}
     }
 
-    let canplay = (gs, h) => {
-
-	// can play if level 0
-	return h.getIn(['info','lvl']) === 0 ||
-
-	// have the stock
-	( h.getIn(['info', 'cost']) <= gs.getIn([currentplayer(gs), 'stock']).size &&
-
-	  // color is in level or clock
-	  ( gs.getIn([currentplayer(gs), 'level']).map(c => c.getIn(['info','color'])).includes( h.getIn(['info', 'color']) ) ||
-	    gs.getIn([currentplayer(gs), 'clock']).map(c => c.getIn(['info','color'])).includes( h.getIn(['info', 'color']) ) ) &&
-
-	  // and current level ( this is a function since continous abilites are typically a function of game_state )
-	  gs.getIn([currentplayer(gs), 'level']).size >= h.getIn(['active','level'])(gs) )
-    }
 
 
-    let playCard = (gs, card, deststage, destpos) => {
+    let playcard = (gs, card, deststage, destpos) => {
 	if(canplay(gs, card)) {
  	    let cost = card.getIn(['info','cost'])
-
 	    // delete the card from the hand
 	    gs = gs.updateIn([currentplayer(gs), 'hand'], hand=> {
 		let index = hand.findIndex(c => c.getIn(['info','id']) === card.getIn(['info','id']))
@@ -169,12 +167,13 @@ const ControllerFactory = function(game_state) {
 	    })
 	    
 	    // subtract the cost
-	    let stock = gs.getIn([currentplayer(gs), 'stock'])
-	    let payment = stock.slice(0, cost)
-	    let rem = stock.slice(cost)
+	    if(cost > 0) {
+		
 
+		gs = payment(cost)(gs)
+	    }
 	    if(deststage === 'event') {
-
+		
 		////////////// TODO ////////////////////
 	    }
 	    else {
@@ -182,14 +181,15 @@ const ControllerFactory = function(game_state) {
 		    return cards.insert(0, card)
 		})
 	    }
-	    return gs.updateIn([currentplayer(gs), 'stock'], rem)
-		.updateIn([currentplayer(gs), 'waiting_room'], payment)
+	    return gs
 	}
 
     }
 
     
     return {
+
+	updateUI:updateUI,
 
 	updategamestate(gs) {
 	    if(gs !== undefined)
@@ -325,9 +325,6 @@ const ControllerFactory = function(game_state) {
 	// this is called recursively for after each main turn
 	main() {
 
-	    let action = undefined;
-
-	    
 	    
 	    let moveCardActions = (srcstage, srcpos) => {
 		return gs => {
@@ -336,26 +333,39 @@ const ControllerFactory = function(game_state) {
 			    return card.updateIn(['actions'], _ => fromJS([
 				{
 				    exec() {
-					ui.prompt(<StageSelector onselect={
-					    ([deststage, destpos]) => {
-						action = gs => {
-						    let cardpos = gs.getIn([currentplayer(gs), srcstage, srcpos])
-						    let carddes = gs.getIn([currentplayer(gs), deststage, destpos])
-
-						    // all cards here go into the waiting room
-						    if(iscard(carddest.first())) {
-							// shift into waiting room
-							gs = gs.updateIn([currentplayer(gs), 'waiting_room'], waiting_room => waiting_room.unshift(carddes))
+					return _ui.prompt(obs => {
+					    return {
+						id:'stage-selector',
+						prompt: 
+						<StageSelector onselect={
+						    ([deststage, destpos]) => {
+							let cardpos = gs.getIn([currentplayer(gs), 'stage', srcstage, srcpos])
+							let carddes = gs.getIn([currentplayer(gs), 'stage', deststage, destpos])
+							
+							
+							// all cards here go into the waiting room
+							if(iscard(carddes.first())) {
+							    
+							    gs = gs.updateIn([currentplayer(gs), 'waiting_room'], waiting_room => carddes.concat(waiting_room))
+							}
+							
+							return of(gs
+								  .setIn([currentplayer(gs), 'stage', deststage, destpos], cardpos)
+								  .setIn([currentplayer(gs), 'stage', srcstage, srcpos], List()))
+							    .subscribe(
+								gs => {
+								    obs(gs)
+								})
+							
 						    }
-
-						    return gs.setIn([currentplayer(gs), deststage, despos], cardpos)
-						}
+						} openpositions={[['center','left'],
+								  ['center','middle'],
+								  ['center','right'],
+								  ['back','left'],
+								  ['back','right']]}/>
 					    }
-					} openpositions={[['center','left'],
-							  ['center','middle'],
-							  ['center','right'],
-							  ['back','left'],
-							  ['back','right']]}/>)
+					})
+					    
 				    },
 				    desc: "Move"
 				}
@@ -368,32 +378,38 @@ const ControllerFactory = function(game_state) {
 	    let playCardActions = gs => {
 		return gs.updateIn([currentplayer(gs), 'hand'], hand => hand.map(h => {
 		    if(canplay(gs, h))
-			return h.updateIn(['actions'], [
+			return h.updateIn(['actions'], _ => fromJS([
 			    {
 				exec() {
-				    ui.prompt(<StageSelector onselect={
-					([deststage, destpos]) => {
-					    action = gs => {
-					
-						return of(playcard(gs, h, deststage, destpos))
-					    }
+				    return _ui.prompt(obs => {
+					return {
+					    prompt:
+						       <StageSelector onselect={
+							   ([deststage, destpos]) => {
+							       return of(playcard(gs, h, deststage, destpos))
+								   .subscribe(gs => {
+								       obs(gs)
+								   })
+							   }
+						       } openpositions={
+							   (_ => {
+							       if(isevent(h))
+								   return [['event']]
+							       return  [['center','left'],
+									['center','middle'],
+									['center','right'],
+									['back','left'],
+									['back','right']]
+							   })()
+						       } />,
+					    id:'stage-selector'
 					}
-				    } openpositions={
-					(_ => {
-					    if(isevent(h))
-						return [['event']]
-					    return  [['center','left'],
-						     ['center','middle'],
-						     ['center','right'],
-						     ['back','left'],
-						     ['back','right']]
-					})()
-				    } />)
+				    })
 				    
 				},
 				desc: "Play"
 			    }
-			])
+			]))
 		    return h;
 		}))
 		
@@ -406,25 +422,25 @@ const ControllerFactory = function(game_state) {
 	    	.map(moveCardActions('back', 'left'))
 	    	.map(moveCardActions('back', 'right'))
 		.map(playCardActions)
-		.mergeMap(updateUI({evt:"main"}, obs => {
-		    return gs => {
-			action = gs => {
-			    obs.next(gs)
-			}
-		    }
-		}))
+		.mergeMap(updateUI({evt:"main"}))
 		.mergeMap(gs => {
-		    if(action) {
-			_gs = action(gs);
+		    // if the game_state isn't returned, we just leave
+		    if(gs) {
+			//			console.log(`updating game_state`)
+			_gs = gs
+			//		    if(action) {
+			//			_gs = action(gs);
+			//		    }
+			return this.main()
 		    }
-		    return this.main()
+		    return of(gs)
 		})
 	},
 	climax() {
 	    let selectclimax = gs => {
 		return gs.updateIn([currentplayer(gs), 'hand'], hand => {
 		    return hand.map(c => {
-//			console.log(`updating ${c}`)
+			//			console.log(`updating ${c}`)
 			return c.updateIn(['actions'], _ => {
 			    return fromJS([
 				{
@@ -449,9 +465,9 @@ const ControllerFactory = function(game_state) {
 		.mergeMap(updateUI({evt:"climax",when:"begin"}))
 		.map(selectclimax)
 		.mergeMap(updateUI({evt:"climax"}))
-			
+	    
 	}
-    
+	
 	
     }
 }

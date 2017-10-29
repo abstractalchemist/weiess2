@@ -2,9 +2,16 @@ import { expect } from 'chai'
 import ControllerFactory from '../src/controller'
 import GameStateFactory from '../src/game_state'
 
-import { currentplayer } from '../src/utils'
-import { fromJS } from 'immutable'
-import { init, basecard, basestack } from './utils'
+import { currentplayer, iscard } from '../src/utils'
+import { List, fromJS } from 'immutable'
+import { init, basecard, basestack, createprompt } from './utils'
+import { payment } from '../src/utils'
+import { Observable } from 'rxjs'
+const { create,of }  = Observable;
+import { mount } from 'enzyme'
+import brainstorm, { searchdeck } from '../src/actions/brainstorm'
+
+import G, { C } from '../src/getter'
 
 describe('ControllerFactory', function() {
     it('standup', function(done) {
@@ -27,9 +34,9 @@ describe('ControllerFactory', function() {
 		_ => {
 		    //console.log(gf)
 		    
-		    expect(gf.getIn([currentplayer(gf), 'stage','center','left']).first().getIn(['status'])).to.equal('stand')
-		    expect(gf.getIn([currentplayer(gf), 'stage','center','middle']).first().getIn(['status'])).to.equal('stand')
-		    expect(gf.getIn([currentplayer(gf), 'stage','center','right']).first().getIn(['status'])).to.equal('stand')
+		    expect(C.status(gf.getIn([currentplayer(gf), 'stage','center','left']))).to.equal('stand')
+		    expect(C.status(gf.getIn([currentplayer(gf), 'stage','center','middle']))).to.equal('stand')
+		    expect(C.status(gf.getIn([currentplayer(gf), 'stage','center','right']))).to.equal('stand')
 		    done()
 		})
     })
@@ -52,8 +59,8 @@ describe('ControllerFactory', function() {
     it('draw no cards', function(done) {
 	let [gs, controller] = init('draw', 0)
 	
-	expect(gs.getIn([currentplayer(gs), 'hand']).size).to.equal(0)
-	expect(gs.getIn([currentplayer(gs), 'deck']).size).to.equal(0)
+	expect(G.hand(gs).size).to.equal(0)
+	expect(G.deck(gs).size).to.equal(0)
 	controller.draw()
 	    .subscribe(
 		g => {
@@ -63,7 +70,7 @@ describe('ControllerFactory', function() {
 		    done(err)
 		},
 		_ => {
-		    expect(gs.getIn([currentplayer(gs), 'hand']).size).to.equal(0)
+		    expect(G.hand(gs).size).to.equal(0)
 		    done()
 		})
 	
@@ -73,8 +80,8 @@ describe('ControllerFactory', function() {
 	let [gs, controller] = init('draw', 0);
 	controller.updategamestate(gs = gs.updateIn([currentplayer(gs), 'deck'], deck => deck.push(basecard(), basecard())))
 	
-	expect(gs.getIn([currentplayer(gs), 'deck']).size).to.equal(2)
-	expect(gs.getIn([currentplayer(gs), 'hand']).size).to.equal(0)
+	expect(G.deck(gs).size).to.equal(2)
+	expect(G.hand(gs).size).to.equal(0)
 	controller.draw()
 	    .subscribe(
 		g => {
@@ -84,8 +91,8 @@ describe('ControllerFactory', function() {
 		    done(err)
 		},
 		_ => {
-		    expect(gs.getIn([currentplayer(gs), 'deck']).size).to.equal(1)
-		    expect(gs.getIn([currentplayer(gs), 'hand']).size).to.equal(1)
+		    expect(G.deck(gs).size).to.equal(1)
+		    expect(G.hand(gs).size).to.equal(1)
 		    done()
 		})
 
@@ -102,7 +109,7 @@ describe('ControllerFactory', function() {
 		    done(err)
 		},
 		_ => {
-		    expect(gs.getIn([currentplayer(gs), 'clock']).size).to.equal(0)
+		    expect(G.clock(gs).size).to.equal(0)
 		    done()
 		})
     })
@@ -112,8 +119,8 @@ describe('ControllerFactory', function() {
 	let [gs, controller] = init('clock', 0, {
 	    updateUI(gs, obs, evt) {
 		let hand = gs.getIn([currentplayer(gs),'hand'])
-		//		console.log(hand.first())
-		hand.first().getIn(['actions']).first().getIn(['exec'])().subscribe(gs => {
+
+		C.firstaction(hand)().subscribe(gs => {
 		    obs.next(gs)
 		    obs.complete()
 		})
@@ -135,8 +142,32 @@ describe('ControllerFactory', function() {
 		})
     })
 
-    xit('main', function(done) {
-	let [gs, controller] = init('main', 0)
+    it('main - play a card', function(done) {
+	let [gs, controller] = init('main', 0, {
+	    updateUI(gs, obs, evt) {
+		
+		let hand = G.hand(gs)
+		if(hand.size > 0) {
+		    let card = hand.first();
+		    
+		    let exec = C.firstaction(card)
+		    
+		    // exec called means this card is played
+		    exec().subscribe(gs => {
+			obs.next(gs)
+			obs.complete();
+		    })
+		}
+
+		// the test empties the hand, so we quite
+		else {
+		    obs.next()
+		    obs.complete()
+		}
+	    },
+	    prompt:createprompt()
+	})
+	controller.updategamestate(gs = gs.updateIn([currentplayer(gs), 'hand'], hand => hand.push(basecard().updateIn(['info','level'], _ => 0))))
 
 	controller.main()
 	    .subscribe(
@@ -149,24 +180,145 @@ describe('ControllerFactory', function() {
 		_ => {
 		    done()
 		})
-		
+	
     })
 
+    it('main - move a card', function(done) {
+	let [gs, controller] = init('main', 0, {
+	    updateUI(gs, obs, evt) {
+		
+		let stage = gs.getIn([currentplayer(gs), 'stage','center','middle'])
+		let card = stage.first();
+		if(iscard(card)) {
+		    let exec = C.firstaction(card)
+
+		    // exec called means we move this card
+		    exec().subscribe(gs => {
+			obs.next(gs)
+			obs.complete()
+		    })
+		}
+
+		// since the test is to move a single card, we just quit here
+		else {
+		    obs.next()
+		    obs.complete()
+		}
+	    },
+	    prompt:createprompt()
+	})
+	controller.updategamestate(gs = gs.updateIn([currentplayer(gs), 'stage', 'center', 'middle'], stage => stage.push(basecard().updateIn(['info','level'], _ => 0))))
+
+	controller.main()
+	    .subscribe(
+		g => {
+		    gs = g
+		},
+		err => {
+		    done(err)
+		},
+		_ => {
+		    done()
+		})
+	
+    })
+    it('main - activated ability ( brainstorm )', function(done) {
+	let [gs, controller] = init('main', 0, {
+	    updateUI(gs, obs, evt) {
+		
+		let stage = gs.getIn([currentplayer(gs), 'stage','center','middle'])
+		let card = stage.first();
+		
+		if(iscard(card)) {
+		    
+		    let cardactions = card.getIn(['cardactions'])
+		    if(cardactions.size > 0) {
+			let cardaction = cardactions.first()
+			
+			expect(cardaction.getIn(['shortdesc'])).to.equal("Brainstorm")
+			let stock = G.stock(gs)
+			if(stock.size >= 1) {
+			    
+			    let exec = cardaction.getIn(['exec'])
+			    //			    console.log(cardaction)
+			    let d = exec()
+			    d
+				.subscribe(
+				    gs => {
+					obs.next(gs)
+					obs.complete()
+				    })
+			}
+		    }
+		    else {
+			obs.next()
+			obs.complete()
+		    }
+		    
+		}
+		
+
+		// since the test is to move a single card, we just quit here
+		else {
+		    obs.next()
+		    obs.complete()
+		}
+	    },
+	    prompt:createprompt
+	})
+	controller.updategamestate(gs = gs
+				   .updateIn([currentplayer(gs), 'stock'], stock => stock.push(basecard()))
+				   .updateIn([currentplayer(gs), 'stage', 'center', 'middle'],
+					     stage => stage.push(basecard()
+								 .updateIn(['info','level'], _ => 0)
+								 .updateIn(['availablecardactions'], _ =>
+									   gs => {
+									       //									    throw "stacktrace"
+									       let stock = G.stock(gs)
+									       if(stock.size >= 1) {
+										   return fromJS([
+										       {
+											   exec(gs,ui) {
+											       return brainstorm(payment(1), searchdeck())(gs, ui)
+											   },
+											   desc:"Pay 1 from Stock, Draw 4 cards; for each climax, search deck for character card;  4 cards to waiting room",
+											   shortdesc:"Brainstorm"
+										       }
+										   ])
+									       }
+									       return List()
+									   }))))
+
+	controller.main()
+	    .subscribe(
+		g => {
+		    gs = g
+		},
+		err => {
+		    done(err)
+		},
+		_ => {
+		    done()
+		})
+	
+    })
+
+    
     it('climax', function(done) {
 	let [gs, controller] = init('climax', 0,  {
 	    updateUI(gs, obs, evt) {
 		
 		if(evt.when !== 'begin') {
 		    expect(evt.evt).to.equal('climax')
-		    let hand = gs.getIn([currentplayer(gs), 'hand'])
+		    let hand = G.hand(gs)
 		    let climax = hand.first();
-		    let exec = climax.getIn(['actions']).first().getIn(['exec']);
-		    // we exec this
+		    let exec = C.firstaction(climax)
+		    // we exec this to 'play' the card
 		    exec().subscribe(gs => {
 			obs.next(gs)
 			obs.complete()
 		    })
-		
+		    
 		}
 		else {
 		    obs.next(gs)
@@ -185,11 +337,11 @@ describe('ControllerFactory', function() {
 		    done(err)
 		},
 		_ => {
-//		    console.log(gs)
-		    let climaxarea = gs.getIn([currentplayer(gs), 'climax']);
+		    //		    console.log(gs)
+		    let climaxarea = G.climax(gs)
 		    expect(climaxarea.size).to.equal(1)
 		    done()
 		})
-		       
+	
     })
 })

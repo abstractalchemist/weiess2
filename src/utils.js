@@ -130,4 +130,38 @@ const refresh = function(gs) {
 }
 
 
-export { debug, iscard, findopenpositions, currentplayer, collectactivateablecards, inactiveplayer, shuffle, isevent, refresh, isclimax }
+// utility to pay
+const payment = function(cost) {
+    return gs => {
+//	console.log(`attempting to pay ${cost}`)
+	let stock = gs.getIn([currentplayer(gs), 'stock'])
+	if(stock.size >= cost) {
+	    let payment = stock.slice(0, cost)
+	    let rem = stock.slice(cost)
+	    
+	    return gs.updateIn([currentplayer(gs), 'stock'], _ => rem)
+		.updateIn([currentplayer(gs), 'waiting_room'], room => payment.concat(room))
+	}
+	return gs;
+
+
+    }
+}
+
+const canplay = function(gs, h) {
+    // can play if level 0
+    return h.getIn(['info','level']) === 0 ||
+
+    // have the stock
+    ( h.getIn(['info', 'cost']) <= gs.getIn([currentplayer(gs), 'stock']).size &&
+
+      // color is in level or clock
+      ( gs.getIn([currentplayer(gs), 'level']).map(c => c.getIn(['info','color'])).includes( h.getIn(['info', 'color']) ) ||
+	gs.getIn([currentplayer(gs), 'clock']).map(c => c.getIn(['info','color'])).includes( h.getIn(['info', 'color']) ) ) &&
+
+      // and current level ( this is a function since continous abilites are typically a function of game_state )
+      gs.getIn([currentplayer(gs), 'level']).size >= h.getIn(['active','level'])(gs) )
+}
+
+
+export { debug, iscard, findopenpositions, currentplayer, collectactivateablecards, inactiveplayer, shuffle, isevent, refresh, isclimax, canplay, payment }
