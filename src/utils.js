@@ -1,5 +1,6 @@
 import { fromJS, isImmutable, List } from 'immutable'
-
+import { Observable } from 'rxjs'
+const { of } = Observable
 
 // returns true if c is a card
 const iscard = function(c) {
@@ -157,6 +158,46 @@ const refresh = function(gs) {
     return gs;
 }
 
+const applyrefreshdamage = function(gs) {
+    if(gs.getIn(['applyrefreshdamage'])) {
+	let card = G.deck(gs)
+	return gs.updateIn(['applyrefreshdamage'], false)
+	    .updateIn([currentplayer(gs), 'deck'], deck => deck.shift())
+	    .updateIn([currentplayer(gs), 'clock'], clock => iscard(card) ? clock.insert(0, card) : clock)
+    }
+    return gs
+
+}
+
+const clockDamage = (ui, player) => {
+
+    return function(gs) {
+	player = player || currentplayer(gs)
+	let clock = G.clock(gs)
+	if(clock.size >= 7) {
+	    let selectable = clock.slice(clock.size - 7)
+	    let rem = clock(0, clock.size - 7)
+	    return ui.prompt(func => {
+		return {
+		    prompt:  <CardSelector onselect={
+			id => {
+
+			    let index = selectable.findIndex(c => id === c.getIn(['info','id']))
+			    let card = selectable.get(index)
+			    func(gs.updateIn([player, 'level'],  level => level.insert(0, card)
+					     .updateIn([player, 'clock'], clock => rem)
+					     .updateIn([player, 'waiting_room'], wr => rem.concat(wr))))
+					    
+			    
+			}
+		    } selection={selectable}/>,
+		    id:'card-selector'
+		}
+	    })
+	}
+	return of(gs)
+    }
+}
 
 // utility to pay
 const payment = function(cost) {
@@ -256,4 +297,4 @@ const dealdamage = function(count, gs, cancelable = true) {
 
 }
 
-export { debug, iscard, findopenpositions, currentplayer, collectactivateablecards, inactiveplayer, shuffle, isevent, refresh, isclimax, canplay, payment, findcardonstage, findstageposition, G, dealdamage }
+export { debug, iscard, findopenpositions, currentplayer, collectactivateablecards, inactiveplayer, shuffle, isevent, refresh, isclimax, canplay, payment, findcardonstage, findstageposition, G, dealdamage, applyrefreshdamage, clockDamage }

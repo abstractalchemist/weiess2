@@ -3,7 +3,8 @@ import React from 'react'
 import StageSelector from './stageselector'
 const { of, create } = Observable;
 import { isImmutable, List, fromJS } from 'immutable'
-import { shuffle, debug, iscard, currentplayer, findopenpositions, collectactivateablecards, isevent, refresh, isclimax, canplay, payment, G } from './utils'
+import { shuffle, debug, iscard, currentplayer, findopenpositions, collectactivateablecards, isevent, refresh, isclimax, canplay, payment, G, applyrefreshdamage, clockDamage } from './utils'
+import AttackPhase from './attack_phase'
 
 /*
 
@@ -283,15 +284,8 @@ const ControllerFactory = function(game_state) {
 	    }
 	    return of(_gs.updateIn(['phase'], _ => 'draw'))
 		.map(drawIt)
-		.mergeMap(gs => {
-		    if(gs.getIn(['applyrefreshdamage'])) {
-			let card = G.deck(gs)
-			return of(gs.updateIn(['applyrefreshdamage'], false)
-				  .updateIn([currentplayer(gs), 'deck'], deck => deck.shift())
-				  .updateIn([currentplayer(gs), 'clock'], clock => iscard(card) ? clock.insert(0, card) : clock))
-		    }
-		    return of(gs)
-		})
+		.map(applyrefreshdamage)
+		.mergeMap(clockDamage(_ui))
 		.mergeMap(updateUI({ evt: "draw" }))
 	},
 	clock() {
@@ -473,9 +467,11 @@ const ControllerFactory = function(game_state) {
 		.map(selectclimax)
 		.mergeMap(updateUI({evt:"climax"}))
 	    
+	},
+	attack() {
+	    const a = AttackPhase(_gs, _ui)
+	    return a.resolve()
 	}
-	
-	
     }
 }
 

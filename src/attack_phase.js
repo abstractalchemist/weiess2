@@ -1,5 +1,5 @@
 import { Observable } from 'rxjs'
-import { isclimax, inactiveplayer, currentplayer, G, findcardonstage, findstageposition, iscard, refresh, dealdamage } from './utils'
+import { isclimax, inactiveplayer, currentplayer, G, findcardonstage, findstageposition, iscard, refresh, dealdamage, applyrefreshdamage, clockDamage } from './utils'
 import StageSelector from './stageselector'
 import DeckSelector from './deckselector'
 const { of, create } = Observable;
@@ -154,10 +154,14 @@ const AttackPhase = function(gs, ui) {
 			return of(gs)
 			    .mergeMap(ui.updateUI({evt:"attack_trigger"}))
 			    .mergeMap(gs => this.trigger(gs, _attacking_card))
+			    .map(applyrefreshdamage)
+			    .mergeMap(clockDamage(ui))
 			    .mergeMap(ui.updateUI({evt:"attack_counter"}))
 			    .mergeMap(gs  => this.counter_attack(gs, _attacking_card))
 			    .mergeMap(ui.updateUI({evt:"attack_damage"}))
 			    .mergeMap(gs => this.damage(gs, _attacking_card))
+			    .map(applyrefreshdamage)
+			    .mergeMap(clockDamage(ui))
 			    .mergeMap(gs => {
 				if(_attack_type === 'direct')
 				    return of(gs)
