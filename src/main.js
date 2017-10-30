@@ -4,6 +4,7 @@ import { field, fieldReverse, hand } from './field'
 import StartDialog from './start_dialog'
 import { Observable } from 'rxjs'
 const { create } = Observable;
+import { buildCardSet } from 'weiss-utils'
 
 class Main extends React.Component {
     
@@ -50,9 +51,14 @@ class Main extends React.Component {
     render() {
 	const title = "Weiss Game Simulator"
 	return (<div className="mdl-layout mdl-js-layout">
-		<Nav title={title} />
+		<Nav title={title} tabs={[{id:"fixed-tab-2",label:"Game Field"},{id:"fixed-tab-1",label:"Card Set View"}]}/>
 		<Drawer title={title} />
 		<Body>
+
+
+		<section className="mdl-layout__tab-panel is-active" id="fixed-tab-2">
+		<div className="page-content">
+
 		<div className="mdl-grid">
 		<div className="mdl-cell--2-col">
 		<button className="mdl-button mdl-js-button" onClick={this.loadDecks.bind(this)}>
@@ -109,6 +115,17 @@ class Main extends React.Component {
 		}
 		</div>
 		<StartDialog />
+		</div>
+		</section>
+
+		<section className="mdl-layout__tab-panel is-active" id="fixed-tab-1">
+		<div className="page-content">
+		{buildCardSet(
+		    {
+		    })}
+		</div>
+		</section>
+		
 		
 		</Body>
 		
