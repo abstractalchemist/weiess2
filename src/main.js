@@ -5,6 +5,8 @@ import StartDialog from './start_dialog'
 import { Observable } from 'rxjs'
 const { create } = Observable;
 import { buildCardSet } from 'weiss-utils'
+import CardStore from './card_store'
+import { hasavailableactions } from './utils'
 
 class Main extends React.Component {
     
@@ -18,7 +20,12 @@ class Main extends React.Component {
     }
  
     updateUI(gs, obs, evt) {
+	
 	this.setState({game_state:gs, obs, evt})
+	if(!hasavailableactions(gs) && !this.state.prompt) {
+	    obs.next(gs)
+	    obs.complete()
+	}
     }
 
     prompt(promptfunc) {
@@ -33,19 +40,171 @@ class Main extends React.Component {
     }
     
     componentDidMount() {
-	componentHandler.upgradeDom();
+	CardStore.getcardsets().subscribe(
+	    data => {
+		this.setState({cardsets:data})
+	    }
+	);
+
+    }
+
+    componentDidUpdate() {
+	
 	if(this.state.prompt) {
+	    document.querySelector('#'+ this.state.prompt.id).showModal();
 	}
+	componentHandler.upgradeDom();
     }
 
     loadDecks() {
-	
+	this.setState({load_mode:'load_decks'})
     }
 
     placeCards() {
+	let close = _ => {
+	    this.setState({prompt:undefined})
+	    document.querySelector('#populate-dialog').close()
+	}
+	this.setState({load_mode:'place_cards',
+		       prompt:
+		       {
+			   prompt:(<dialog className="mdl-dialog" id='populate-dialog'>
+				   <div className="mdl-dialog__content">
+				   </div>
+				   <div className="mdl-dialog_actions">
+				   <button className="mdl-button mdl-js-button" onClick={
+				       evt => {
+					   close()
+				       }
+				   }>
+				   Populate
+				   </button>
+				   <button className="mdl-button mdl-js-button" onClick={close}>
+				   Cancel
+				   </button>
+				   </div>
+				   </dialog>),
+			   id:"populate-dialog"
+		       }})
     }
 
     loadScenario() {
+	this.setState({load_mode:'load_scenario'})
+    }
+
+    updateCardView() {
+	let selected = document.querySelectorAll("#cardset-selector tr.is-selected td:nth-child(2)");
+	let targets = [];
+	if(selected) {
+	    for(let i = 0; i < selected.length; ++i) {
+		let item = selected.item(i);
+		if(item.dataset.id)
+		    targets.push(item.dataset.id);
+	    }
+	}
+	//	let target = targets[0];
+	let observable = Observable.merge.apply(undefined, targets.map(CardStore.getcardsfromset));
+//	let observable = Cards.getcardsfromset(target);
+	let buffer = [];
+	if(this.cardViewRetrieveHandle) {
+	    this.cardViewRetrieveHandle.unsubscribe();
+	}
+	if(this.ownershipRetrieveHandle) {
+	    this.ownershipRetrieveHandle.unsubscribe();
+	}
+	
+	this.cardViewRetrieveHandle = observable.subscribe(
+	    data => {
+		buffer.push(data)
+	    },
+	    err => {
+		console.log(`error ${err}`);
+	    },
+	    _ => {
+//		console.log('update card view');
+		this.setState({cardset:targets,cardset_coll:buffer,is_building:true});
+		let buffer2 = [];
+		this.ownershipRetrieveHandle = Observable.from(buffer)
+		    .subscribe(
+			data => {
+			    buffer2.push(data);
+			},
+			err => {
+			    console.log(`error ${err}`);
+			},
+			_ => {
+			    
+			    this.setState({is_building:undefined,cardset_coll:buffer2});
+			})
+ 	    })
+    }
+
+    addFromSetToField(evt) {
+	let close = _ => {
+	    this.setState({prompt:undefined})
+	    document.querySelector('#add-to-field').close()
+	    
+	}
+	this.setState({prompt: {
+	    id:'add-to-field',
+	    prompt:
+	    (_ => {
+		return (<dialog className="mdl-dialog" id="add-to-field">
+			<div className="mdl-dialog__content">
+			<table className="mdl-data-table mdl-js-data-table mdl-data-table--selectable mdl-shadow--2dp">
+			<thead>
+			<tr>
+			<th>Location</th>
+			</tr>
+			</thead>
+			<tbody>
+			{( _ => {
+			    return [{label:'Hand',id:'hand'},
+				    {label:'Center Left', id:'center-left'},
+				    {label:'Center Middle', id:'center-middle'},
+				    {label:'Center Right', id:'center-right'},
+				    {label:'Back Left', id:'back-left'},
+				    {label:'Back Right', id:'back-right'},
+				    {label:'Waiting Room', id:'waiting_room'}].map(o => {
+					return (<tr id={o.id}>
+						<td>{o.label}</td>
+						</tr>)
+				    })
+			})()
+			}
+			</tbody>
+			</table>
+			</div>
+			<div className="mdl-dialog__actions">
+			<button className="mdl-button mdl-js-button" onClick={
+			    evt => {
+				let selected = document.querySelector('#add-to-field table tr.is-selected');
+				if(selected) {
+				    console.log(selected.id)
+				}
+				close()
+			    }
+			}>
+			Ok
+			</button>
+			<button className="mdl-button mdl-js-button" onClick={close} >
+			Cancel
+			</button>
+			</div>
+			</dialog>)
+	    })()
+	}})
+    }
+    
+    buildSetObj() {
+	return {
+	    cardset:this.state.cardset,
+	    cardsets:this.state.cardsets,
+	    updateCardView:this.updateCardView.bind(this),
+	    is_building:this.state.is_building,
+	    cardset_coll:this.state.cardset_coll,
+	    addhandler2:(this.state.load_mode === 'place_cards' ? this.addFromSetToField.bind(this) : undefined)
+	}
     }
     
     render() {
@@ -107,26 +266,24 @@ class Main extends React.Component {
 		{field(this.state)}
 		<div className="mdl-cell mdl-cell--12-col spacer"/>
 		{hand(this.state)}
-		{( _ => {
-		    if(this.state.prompt) {
-			return this.state.prompt;
-		    }
-		})()
-		}
 		</div>
-		<StartDialog />
+
 		</div>
 		</section>
 
 		<section className="mdl-layout__tab-panel is-active" id="fixed-tab-1">
 		<div className="page-content">
-		{buildCardSet(
-		    {
-		    })}
+		{buildCardSet(this.buildSetObj())}
 		</div>
 		</section>
+		{( _ => {
+		    if(this.state.prompt) {
+			return this.state.prompt.prompt;
+		    }
+		})()
+		}
 		
-		
+		<StartDialog />		
 		</Body>
 		
 		</div>)

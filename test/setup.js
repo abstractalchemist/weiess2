@@ -10,7 +10,13 @@ const dom = new JSDOM('<body><div id="content"></div></body>');
 
 global.document = dom.window.document;
 global.window = dom.window;
-global.XMLHttpRequest = dom.window.XMLHttpRequest;
+//global.XMLHttpRequest = dom.window.XMLHttpRequest;
+global.XMLHttpRequest = function XMLHttpRequest() {
+    this.open = function() {
+    }
+    this.send = function() {
+    }
+}
 //const root = require('rxjs/util/root');
 window.Object = global.Object
 window.Math = global.Math

@@ -161,7 +161,7 @@ function fieldReverse({game_state,obs, controller}) {
     let gs = game_state.getIn([inactiveplayer(game_state)]).toJS();
 //    console.log(gs)
     let center= [ <SpacerSlot key='spacer-1' id='spacer-1' width={2} />,  // spacer
-		  
+		  <SpacerSlot key='spacer-2' id='spacer-2' width={2} />,  // spacer		  
 		  <CardSlot id='left-center-player2' key='left-center-player2'>
 		  <StageCard controller={controller} obs={obs} cards={gs.stage.center[0]}/>
 		  </CardSlot>,  // left center
@@ -174,8 +174,7 @@ function fieldReverse({game_state,obs, controller}) {
 		  <StageCard controller={controller} obs={obs} cards={gs.stage.center[2]}/>
 		  </CardSlot>,  // right center
 		  
-		  <SpacerSlot key='spacer-2' id='spacer-2' width={2} />,  // spacer
-		  
+
 		  <CardSlot id='memory-player2' key='memory-player2'>
 		  <MemoryCard />
 		  </CardSlot>]  // memory
@@ -184,7 +183,7 @@ function fieldReverse({game_state,obs, controller}) {
 		 <Card />
 		 </CardSlot>, // climax
 		 
-		 <SpacerSlot key='spacer-3' id='spacer-3' width={1} />, //spacer
+		 <SpacerSlot key='spacer-3' id='spacer-3' width={3} />, //spacer
 		 
 		 <CardSlot id='back-left-player2' key='back-left-player2' >
 		 <StageCard controller={controller} obs={obs} cards={gs.stage.back[0]}/>
@@ -194,7 +193,7 @@ function fieldReverse({game_state,obs, controller}) {
 		 <StageCard controller={controller} obs={obs} cards={gs.stage.back[1]}/>
 		 </CardSlot>, // back right
 		 
-		 <SpacerSlot key='spacer-4' id='spacer-4' width={3} />,  // spacer
+		 <SpacerSlot key='spacer-4' id='spacer-4' width={1} />,  // spacer
 		 
 		 <CardSlot id='deck-player2' key='deck-player2' >
 		 <DeckCard {...gs}/>

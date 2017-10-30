@@ -298,4 +298,13 @@ const dealdamage = function(count, gs, cancelable = true) {
 
 }
 
-export { debug, iscard, findopenpositions, currentplayer, collectactivateablecards, inactiveplayer, shuffle, isevent, refresh, isclimax, canplay, payment, findcardonstage, findstageposition, G, dealdamage, applyrefreshdamage, clockDamage }
+const hasavailableactions = function(gs) {
+    let hasactions = false;
+    collectactivateablecards(gs).forEach(T => {
+	if(!hasactions && T.getIn(['actions']).size > 0 && T.getIn(['cardactions']).size > 0)
+	    hasactions = true;
+    })
+    return hasactions;
+}
+
+export { debug, iscard, findopenpositions, currentplayer, collectactivateablecards, inactiveplayer, shuffle, isevent, refresh, isclimax, canplay, payment, findcardonstage, findstageposition, G, dealdamage, applyrefreshdamage, clockDamage, hasavailableactions }
