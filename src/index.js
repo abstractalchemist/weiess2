@@ -6,5 +6,5 @@ import GameStateFactory from './game_state'
 
 document.addEventListener('DOMContentLoaded', _ => {
     let gs = undefined
-    ReactDOM.render(<Main controller={ControllerStateFactory(gs = GameStateFactory())} game_state={gs}/>, document.querySelector('#content'))
+    ReactDOM.render(<Main controller={ControllerFactory(gs = GameStateFactory())} game_state={gs}/>, document.querySelector('#content'))
 })

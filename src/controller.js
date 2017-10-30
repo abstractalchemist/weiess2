@@ -50,8 +50,7 @@ import AttackPhase from './attack_phase'
 const ControllerFactory = function(game_state) {
 
     let _ui = undefined;
-    let _gs = game_state;
-
+    let _gs = game_state
 
     // apply all currently available continous actions and attaches active actions ( which require input from the user ) to activate
     // gs - gamestate

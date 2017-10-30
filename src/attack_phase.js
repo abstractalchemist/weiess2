@@ -190,6 +190,7 @@ const AttackPhase = function(gs, ui) {
 	    let deck = G.deck(gs)
 	    let trigger_card = deck.first();
 	    gs = refresh(gs.updateIn([currentplayer(gs), 'deck'], deck => deck.shift()))
+	    let prompt = undefined;
 	    if(iscard(trigger_card)) {
 		let trigger_action = trigger_card.getIn(['info', 'trigger_action'])
 		switch(trigger_action) {
@@ -219,24 +220,30 @@ const AttackPhase = function(gs, ui) {
 		}
 		    break;
 		case "come_back":{
-		    gs = gs.updateIn([currentplayer(gs), 'waiting_room'], wr => {
-			return wr.update(0, card => {
-			    return card.updateIn(['actions'], _ => {
-				return fromJS([
-				    {
-					exec() {
-					    return ui.prompt(func => {
-						return { id:'deck-selector',
-							 prompt:<DeckSelector />
-						       }
-					    })
-					},
-					desc: "Search"
+		    prompt = ui.prompt(func => {
+			return {
+			    prompt:
+				<DeckSelector onselect={
+				    id => {
+					let waiting_room = G.waiting_room(gs);
+					let index = waiting_room.findIndex(i => i.getIn(['info','id']) === id)
+					if(index > 0) {
+					    let card = waiting_room.get(index);
+					    func(gs
+						 .updateIn([currentplayer(gs), 'waiting_room'], wr => {
+						     return wr.delete(index)
+						 })
+						 .updateIn([currentplayer(gs), 'hand'], hand => {
+						     return hand.push(card)
+						 }))
+					}
 				    }
-				])
-			    })
-			})
+				}
+			    field="waiting_room" player={currentplayer(gs)} />,
+			    id:'deck-selector'
+			}
 		    })
+
 		}
 		    break;
 		case "draw":{
@@ -251,22 +258,25 @@ const AttackPhase = function(gs, ui) {
 		}
 		    gs = gs.updateIn([currentplayer(gs), 'hand'], hand => hand.push(trigger_card))
 			.updateIn([currentplayer(gs), 'deck'], deck => {
-			    return deck.update(0, card => {
-				return card.getIn(['actions'], _ => {
-				    return fromJS([
-					{
-					    exec() {
-						let deck = G.deck(gs)
-						let card = deck.first()
-						return  of(refresh(gs.updateIn([currentplayer(gs), 'deck'], deck => deck.shift()))
-							   .updateIn([currentplayer(gs), 'stock'], stock => stock.push(card)))
-						
-					    },
-					    desc: "Treasure"
-					}
-				    ])
+			    if(deck.size > 0) {
+				return deck.update(0, card => {
+				    return card.getIn(['actions'], _ => {
+					return fromJS([
+					    {
+						exec() {
+						    let deck = G.deck(gs)
+						    let card = deck.first()
+						    return  of(refresh(gs.updateIn([currentplayer(gs), 'deck'], deck => deck.shift()))
+							       .updateIn([currentplayer(gs), 'stock'], stock => stock.push(card)))
+						    
+						},
+						desc: "Treasure"
+					    }
+					])
+				    })
 				})
-			    })
+			    }
+			    return deck;
 			})
 		    break;
 		}
@@ -313,7 +323,7 @@ const AttackPhase = function(gs, ui) {
 	    if(gs.getIn(['trigger']) === 'shot')
 		gs = dealdamage(soulcount, gs, false)
 	    return of(gs);
-		
+	    
 	},
 
 
@@ -369,7 +379,7 @@ const AttackPhase = function(gs, ui) {
 						  return cards.concat(wr)
 					      }))
 				    
-					      
+				    
 				},
 				desc: "Retire"
 			    }
@@ -404,16 +414,16 @@ const AttackPhase = function(gs, ui) {
 			return of(gs)
 			    .mergeMap(gs => {
 				return gs.updateIn([player, 'stage'], stage => {
-					return stage.updateIn(pos, p => {
-					    return p.update(0, applyEncoreActions(obs, player, pos))
-					})
+				    return stage.updateIn(pos, p => {
+					return p.update(0, applyEncoreActions(obs, player, pos))
+				    })
 				})
 				
 			    })
 			    .mergeMap(ui.updateUI({evt:"encore"}))
-				.subscribe(gs => {
-				    //
-				})
+			    .subscribe(gs => {
+				//
+			    })
 			
 		    }
 		    return of(gs)
@@ -434,7 +444,7 @@ const AttackPhase = function(gs, ui) {
 		.mergeMap(applyifreversed(['center','left']))
 		.mergeMap(updateUI({evt:'encore',pos:['center','left']}))
 		.mergeMap(applyifreversed(['center','middle']))
-		.mergeMap(updateUI({evt:'encore',pos:['center','middel']}))
+		.mergeMap(updateUI({evt:'encore',pos:['center','middle']}))
 		.mergeMap(applyifreversed(['center','left']))
 		.mergeMap(updateUI({evt:'encore',pos:['center','right']}))
 		.mergeMap(applyifreversed(['back','left']))
@@ -445,7 +455,7 @@ const AttackPhase = function(gs, ui) {
 	    	.mergeMap(applyifreversed(['center','left'], inactiveplayer(gs)))
 		.mergeMap(updateUI({evt:'encore',pos:['center','left']}))
 		.mergeMap(applyifreversed(['center','middle'], inactiveplayer(gs)))
-		.mergeMap(updateUI({evt:'encore',pos:['center','middel']}))
+		.mergeMap(updateUI({evt:'encore',pos:['center','middle']}))
 		.mergeMap(applyifreversed(['center','left'], inactiveplayer(gs)))
 		.mergeMap(updateUI({evt:'encore',pos:['center','right']}))
 		.mergeMap(applyifreversed(['back','left'], inactiveplayer(gs)))

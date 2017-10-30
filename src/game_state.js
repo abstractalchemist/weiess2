@@ -27,8 +27,10 @@ function createfield() {
 
 const GameStateFactory = function() {
     return fromJS({
-	phase:undefined,
-	turn:undefined,
+	phase:'start',
+	triggeraction:undefined,
+	applyrefreshdamage:false,
+	turn:0,
 	player1: createfield(),
 	player2: createfield()
     })
