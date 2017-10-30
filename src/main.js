@@ -97,7 +97,7 @@ class Main extends React.Component {
 		},
 		_ => {
 		    let avail = cards.filter(({info}) => {
-			if(info.level)
+			if(info.level && !new RegExp("C(C|R|X)").test(info.rarity))
 			    return parseInt(info.level) <= targetLevel
 		    })
 		    
