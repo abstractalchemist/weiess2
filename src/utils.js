@@ -298,6 +298,7 @@ const dealdamage = function(count, gs, cancelable = true) {
 
 }
 
+// returns true if there are any user actions required;  used primarily by user interface to determine whether to push on or not
 const hasavailableactions = function(gs) {
     let hasactions = false;
     collectactivateablecards(gs).forEach(T => {

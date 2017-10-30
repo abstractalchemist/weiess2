@@ -3,7 +3,18 @@ import { Observable } from 'rxjs'
 
 export default (function() {
 
-    let mapper = card_id => {
+    const internalmapper = card => {
+	return {
+	    info:Object.assign({},card,{ title:card.name }),
+	    active:{
+		power:0,
+		level:card.level
+	    }
+	}
+    }
+
+    
+    const mapper = card_id => {
 	return Observable.fromPromise(Http({method:"GET",url:"/api/cardmapping/mapping"}))
 	    .map(JSON.parse)
 	    .map(({mapping}) => {
@@ -23,14 +34,19 @@ export default (function() {
 
     }
     
-    let cardmapper = card_id => {
+    const cardmapper = card_id => {
 	return mapper(card_id)
-	    .mergeMap(db => Observable.fromPromise(Http({method:"GET",url:"/api/" + db.db + "/" + card_id})).map(JSON.parse).map(obj => Object.assign({},obj, {id:obj._id})));
+	    .mergeMap(db => Observable
+		      .fromPromise(Http({method:"GET",url:"/api/" + db.db + "/" + card_id}))
+		      .map(JSON.parse)
+		      .map(obj => Object.assign({},obj, {id:obj._id}))
+		      .map(internalmapper));
 	
     }
+
     
     return {
-
+	internalmapper:internalmapper,
 
 	// get a card based on id
 	getcard(card_id) {
