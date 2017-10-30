@@ -2,7 +2,7 @@ import { expect } from 'chai'
 import ControllerFactory from '../src/controller'
 import GameStateFactory from '../src/game_state'
 
-import { currentplayer, iscard, findcardonstage, debug } from '../src/utils'
+import { currentplayer, iscard, findcardonstage, debug, hasavailableactions } from '../src/utils'
 import { List, fromJS } from 'immutable'
 import { init, basecard, basestack, createprompt } from './utils'
 import { payment } from '../src/utils'

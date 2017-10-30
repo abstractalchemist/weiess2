@@ -301,8 +301,15 @@ const dealdamage = function(count, gs, cancelable = true) {
 const hasavailableactions = function(gs) {
     let hasactions = false;
     collectactivateablecards(gs).forEach(T => {
-	if(!hasactions && T.getIn(['actions']).size > 0 && T.getIn(['cardactions']).size > 0)
-	    hasactions = true;
+	if(!hasactions) {
+	    if(iscard(T)) {
+		hasactions = (T.getIn(['actions']) && T.getIn(['actions']).size > 0) || (T.getIn(['cardactions']) && T.getIn(['cardactions']).size > 0)
+	    }
+	    else if(List.isList(T) && iscard(T.first())) {
+		T = T.first()
+		hasactions = (T.getIn(['actions']) && T.getIn(['actions']).size > 0) || (T.getIn(['cardactions']) && T.getIn(['cardactions']).size > 0)
+	    }
+	}
     })
     return hasactions;
 }

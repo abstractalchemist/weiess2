@@ -2,16 +2,18 @@ import GameStateFactory from '../src/game_state'
 import ControllerFactory from '../src/controller'
 import { fromJS } from 'immutable'
 import { Observable } from 'rxjs'
-
+import { hasavailableactions } from '../src/utils'
 const { create } = Observable;
 
 import { mount } from 'enzyme'
 
 function init(phase, turn, ui = {
     updateUI(gs, obs, evt) {
-//	console.log(`auto pushing through ui`)
-	obs.next(gs)
-	obs.complete();
+	//	console.log(`auto pushing through ui`)
+	if(!hasavailableactions(gs)) {
+	    obs.next(gs)
+	    obs.complete();
+	}
 	
     },
 
