@@ -24,7 +24,7 @@
       "vinyl-source-stream": "^1.1.0",
       "ui-utils": "git+ssh://git@github.com/abstractalchemist/ui-utils.git#v0.0.0.5",
       "utils": "git+ssh://git@github.com/abstractalchemist/utils.git#v0.0.0.2",
-      "weiss-utils": "git+ssh://git@github.com/abstractalchemist/weiss-utils.git#v0.0.0.1"
+      "weiss-utils": "git+ssh://git@github.com/abstractalchemist/weiss-utils.git#v0.0.0.2"
 
   },
   "dependencies": {
