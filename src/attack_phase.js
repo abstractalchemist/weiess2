@@ -1,7 +1,8 @@
 import { Observable } from 'rxjs'
-import { isclimax, inactiveplayer, currentplayer, G, findcardonstage, findstageposition, iscard, refresh, dealdamage, applyrefreshdamage, clockDamage } from './utils'
+import { isclimax, inactiveplayer, currentplayer, G, findcardonstage, findstageposition, iscard, dealdamage, clockDamage } from './utils'
+import { refresh, applyrefreshdamage, searchwaitingroom } from './deck_utils'
 import StageSelector from './stageselector'
-import DeckSelector from './deckselector'
+//import DeckSelector from './deckselector'
 const { of, create } = Observable;
 import { fromJS, List } from 'immutable'
 
@@ -220,29 +221,7 @@ const AttackPhase = function(gs, ui) {
 		}
 		    break;
 		case "come_back":{
-		    prompt = ui.prompt(func => {
-			return {
-			    prompt:
-				<DeckSelector onselect={
-				    id => {
-					let waiting_room = G.waiting_room(gs);
-					let index = waiting_room.findIndex(i => i.getIn(['info','id']) === id)
-					if(index > 0) {
-					    let card = waiting_room.get(index);
-					    func(gs
-						 .updateIn([currentplayer(gs), 'waiting_room'], wr => {
-						     return wr.delete(index)
-						 })
-						 .updateIn([currentplayer(gs), 'hand'], hand => {
-						     return hand.push(card)
-						 }))
-					}
-				    }
-				}
-			    field="waiting_room" player={currentplayer(gs)} />,
-			    id:'deck-selector'
-			}
-		    })
+		    prompt = ui.prompt(searchwaitingroom)
 
 		}
 		    break;

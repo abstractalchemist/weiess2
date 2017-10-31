@@ -134,12 +134,21 @@ function StockCard({stock}) {
 	    </div>)
 }
 
-function LevelCard({}) {
-    let style = master
+function LevelCard({level}) {
+    let card;
+    
+    let style = Object.assign({},master)
+    if(level && level.length > 0) {
+	card = level[0]
+	if(card.info.image) {
+	    style['background'] = "url(" + card.info.image + ")";
+	}
+    }
     return (<div className="mdl-card game-card">
 	    <div className="mdl-card__title" style={style}> 
 	    </div>
 	    <div className="mdl-card__supporting-text">
+	    Current Level {( _ => level ? level.length : 0)()}
 	    </div>
 	    <div className="mdl-card__actions">
 	    </div>
@@ -231,13 +240,15 @@ function fieldReverse({game_state,obs, controller}) {
 		   
 		   <SpacerSlot key='spacer-5' id='spacer-5' width={1} />,
 		   
+		   
+		   <CardSlot id='level-player2' key='level-player2' >
+		   <LevelCard {...gs}/>
+		   </CardSlot>,
+
 		   <CardSlot id='clock-player2' key='clock-player2' >
 		   <ClockCard />
 		   </CardSlot>,
-		   
-		   <CardSlot id='level-player2' key='level-player2' >
-		   <LevelCard />
-		   </CardSlot>,
+
 		   
 		   <SpacerSlot key='spacker-12' id='spacer-12' width={3} />,
 		   
@@ -297,14 +308,15 @@ function field({game_state,obs,controller}) {
 		   
 		   <SpacerSlot key='spacer-10' id='spacer-10'  width={1} />,
 		   
+		   
+		   <CardSlot id='level-player1' key='level-player1' >
+		   <LevelCard {...gs}/>
+		   </CardSlot>,
+
 		   <CardSlot id='clock-player1' key='clock-player1' >
 		   <ClockCard />
 		   </CardSlot>,
-		   
-		   <CardSlot id='level-player1' key='level-player1' >
-		   <LevelCard />
-		   </CardSlot>,
-		   
+
 		   <SpacerSlot key='spacer-11' id='spacer-11' width={3} />,
 		   
 		   <CardSlot id='waiting-player1' key='waiting-player1' >

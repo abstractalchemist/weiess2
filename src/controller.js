@@ -3,7 +3,8 @@ import React from 'react'
 import StageSelector from './stageselector'
 const { of, create } = Observable;
 import { isImmutable, List, fromJS } from 'immutable'
-import { shuffle, debug, iscard, currentplayer, findopenpositions, collectactivateablecards, isevent, refresh, isclimax, canplay, payment, G, applyrefreshdamage, clockDamage } from './utils'
+import { shuffle, debug, iscard, currentplayer, findopenpositions, collectactivateablecards, isevent, isclimax, canplay, payment, G, clockDamage } from './utils'
+import { refresh, applyrefreshdamage, searchdeck, drawfromdeck } from './deck_utils'
 import AttackPhase from './attack_phase'
 
 /*
@@ -190,8 +191,10 @@ const ControllerFactory = function(game_state) {
 	updateUI:updateUI,
 
 	updategamestate(gs) {
-	    if(gs !== undefined)
+	    if(gs !== undefined) {
 		_gs = gs;
+		_ui.updateUI(_gs)
+	    }
 	},
 
 	// function to regster the ui to call back to
@@ -272,14 +275,15 @@ const ControllerFactory = function(game_state) {
 	},
 	draw() {
 	    let drawIt = gs => {
-		gs = refresh(gs)
+		return drawfromdeck(1, 'hand', gs)
+		// gs = refresh(gs)
 
-		// deck should be non-zero
-		let deck = G.deck(gs)
+		// // deck should be non-zero
+		// let deck = G.deck(gs)
 		
-		let card = deck.first();
-		return refresh(gs.updateIn([currentplayer(gs), 'hand'], hand => iscard(card) ? hand.push(card) : hand)
-			       .updateIn([currentplayer(gs), 'deck'], deck => deck.shift()))
+		// let card = deck.first();
+		// return refresh(gs.updateIn([currentplayer(gs), 'hand'], hand => iscard(card) ? hand.push(card) : hand)
+ 		// 	       .updateIn([currentplayer(gs), 'deck'], deck => deck.shift()))
 	    }
 	    return of(_gs.updateIn(['phase'], _ => 'draw'))
 		.map(drawIt)

@@ -55,11 +55,17 @@ function status(card) {
 // returns the first phase action assigned to this card
 function firstaction(card) {
     if(List.isList(card)) {
-	return card.first().getIn(['actions']).first().getIn(['exec'])
+	let f = card.first().getIn(['actions'])
+	if(List.isList(f))
+	    return f.first().getIn(['exec'])
 							     
     }
-    if(Map.isMap(card))
-	return card.getIn(['actions']).first().getIn(['exec'])
+    if(Map.isMap(card)) {
+	let f = card.getIn(['actions'])
+	if(List.isList(f))
+	    return f.first().getIn(['exec'])
+	
+    }
     return undefined;
 }
 

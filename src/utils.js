@@ -81,16 +81,6 @@ const implcollectplayercards = function(player, gs) {
 	.concat(G.waiting_room(gs, player))
 }
 
-function shuffle(deck) {
-    let current = []
-    while(deck.size > 0) {
-	let index = Math.floor(Math.random() * deck.size)
-	let c = deck.get(index)
-	deck = deck.delete(index)
-	current.push(c)
-    }
-    return fromJS(current)
-}
 
 
 // collects all cards that could possibly have an affect on the game through either passive or active abilities
@@ -146,28 +136,6 @@ const isevent = function(card) {
 // climax cards have no level and no power
 const isclimax = function(card) {
     return iscard(card) && card.getIn(['info','power']) === undefined && card.getIn(['active','level']) === undefined;
-}
-
-// refreshes deck and sets apply refresh to true
-const refresh = function(gs) {
-    if(gs.getIn([currentplayer(gs), 'deck']).size === 0) {
-	let waiting_room = G.waiting_room(gs)
-	
-	return gs.setIn([currentplayer(gs), 'deck'], shuffle(waiting_room)).setIn([currentplayer(gs), 'waiting_room'], List()).setIn(['applyrefreshdamage'], waiting_room.size > 0)
-    }
-    return gs;
-}
-
-// if the flage is set, apply the refresh damage
-const applyrefreshdamage = function(gs) {
-    if(gs.getIn(['applyrefreshdamage'])) {
-	let card = G.deck(gs)
-	return gs.updateIn(['applyrefreshdamage'], false)
-	    .updateIn([currentplayer(gs), 'deck'], deck => deck.shift())
-	    .updateIn([currentplayer(gs), 'clock'], clock => iscard(card) ? clock.insert(0, card) : clock)
-    }
-    return gs
-
 }
 
 const clockDamage = (ui, player) => {
@@ -315,4 +283,4 @@ const hasavailableactions = function(gs) {
     return hasactions;
 }
 
-export { debug, iscard, findopenpositions, currentplayer, collectactivateablecards, inactiveplayer, shuffle, isevent, refresh, isclimax, canplay, payment, findcardonstage, findstageposition, G, dealdamage, applyrefreshdamage, clockDamage, hasavailableactions }
+export { debug, iscard, findopenpositions, currentplayer, collectactivateablecards, inactiveplayer, isevent, isclimax, canplay, payment, findcardonstage, findstageposition, G, dealdamage, clockDamage, hasavailableactions }

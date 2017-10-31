@@ -2,21 +2,25 @@ import React from 'react'
 import DeckSelector from '../deckselector'
 import StageSelector from '../stageselector'
 import { Observable } from 'rxjs'
-
+import { drawfromdeck, searchdeck } from '../deck_utils'
 const { of, create } = Observable
 import { currentplayer, isclimax, iscard } from '../utils'
-
+import { Map } from 'immutable'
 // draw 4 cards from deck, then returns the number of climaxes, and the update game_state
-function draw(gs) {
-    let deck = gs.getIn([currentplayer(gs), 'deck'])
-    let cards = deck.slice(0,4)
-    return [cards.filter(isclimax).size,
-	    gs.updateIn([currentplayer(gs), 'deck'], _ => deck.slice(4))
-	    .updateIn([currentplayer(gs), 'waiting_room'], room => cards.concat(room))]
-}
+// function draw(gs) {
+//     let deck = gs.getIn([currentplayer(gs), 'deck'])
+//     let cards = deck.slice(0,4)
+//     return [cards.filter(isclimax).size,
+// 	    gs.updateIn([currentplayer(gs), 'deck'], _ => deck.slice(4))
+// 	    .updateIn([currentplayer(gs), 'waiting_room'], room => cards.concat(room))]
+// }
 
-function charfilter(deck) {
-    return deck.filter(c => c.getIn(['active', 'power']) !== undefined)
+function charfilter(card) {
+    
+    //return deck.filter(c => c.getIn(['active', 'power']) !== undefined)
+    if(Map.isMap(card))
+	return card.getIn(['active', 'power']) !== undefined
+    return card.active.power !== undefined;
 }
 
 function findcardsonstage(gs) {
@@ -56,7 +60,7 @@ function updatepowers(by) {
 			    })
 
 			    // update all cards powers, then run with it
-			    func(gs.updateIn([currentplayer(gs), 'stage'], _ => stage))
+			    func(gs.updateIn([currentplayer(game_state), 'stage'], _ => stage))
 			}
 			
 		    }
@@ -69,26 +73,13 @@ function updatepowers(by) {
     }
 }
 	
-function searchdeck(filter = charfilter) {
+function search(filter = charfilter) {
     return (ui, cardcount, game_state) => {
-	return ui.prompt(func => {
-	    return {
-		id:'deck-selector',
-		prompt: <DeckSelector game_state={game_state} onselect={
-		    ids => {
-			console.log('recieved ids to check')
-			// add ids to the hand, remove from deck
-			let gs = game_state;
-			// update game_state
-			func(gs)
-			
-		    }
-		} selectcount={cardcount} filter={filter}/>
-		
-	    }
-	})
+	if(!game_state) throw "search must be passed game_state"
+	return ui.prompt(searchdeck(cardcount, 'deck', filter, game_state))
     }
-}
+ }
+
 
 // cost is a function which updates the state based on cost payment
 // action is a function which takes the number of times to perform, and the current game state;
@@ -96,11 +87,15 @@ function brainstorm(cost, action) {
     return (gs, ui) => {
 	return of(cost(gs))
 	    .mergeMap(gs => {
-		let [actions, gs2] = draw(gs)
-		return action(ui, actions, gs2)
+		let numclimaxes = 0
+		let gs2 = drawfromdeck(4, 'waiting_room', gs, c => {
+		    if(isclimax(c)) numclimaxes++
+		})
+		
+		return action(ui, numclimaxes, gs2)
 
 	    })
     }
 }
 
-export { searchdeck, brainstorm as default };
+export { brainstorm as default, search };

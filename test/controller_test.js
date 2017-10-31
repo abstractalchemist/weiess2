@@ -9,7 +9,7 @@ import { payment } from '../src/utils'
 import { Observable } from 'rxjs'
 const { create,of }  = Observable;
 import { mount } from 'enzyme'
-import brainstorm, { searchdeck } from '../src/actions/brainstorm'
+import brainstorm, { search } from '../src/actions/brainstorm'
 
 import G, { C } from '../src/getter'
 
@@ -119,11 +119,12 @@ describe('ControllerFactory', function() {
 	let [gs, controller] = init('clock', 0, {
 	    updateUI(gs, obs, evt) {
 		let hand = gs.getIn([currentplayer(gs),'hand'])
-
-		C.firstaction(hand)().subscribe(gs => {
-		    obs.next(gs)
-		    obs.complete()
-		})
+		let action = C.firstaction(hand)
+		if(action)
+		    action().subscribe(gs => {
+			obs.next(gs)
+			obs.complete()
+		    })
 	    }
 	})
 	controller.updategamestate(gs = gs.updateIn([currentplayer(gs), 'hand'], hand => hand.push(card)))
@@ -159,7 +160,8 @@ describe('ControllerFactory', function() {
 			    obs.complete();
 			})
 		    }
-		    else {
+		    else if(obs) {
+			
 			obs.next(gs)
 			obs.complete()
 		    }
@@ -231,10 +233,11 @@ describe('ControllerFactory', function() {
 		    let exec = C.firstaction(card)
 
 		    // exec called means we move this card
-		    exec().subscribe(gs => {
-			obs.next(gs)
-			obs.complete()
-		    })
+		    if(exec)
+			exec().subscribe(gs => {
+			    obs.next(gs)
+			    obs.complete()
+			})
 		}
 
 		// since the test is to move a single card, we just quit here
@@ -271,7 +274,7 @@ describe('ControllerFactory', function() {
 		if(iscard(card)) {
 		    
 		    let cardactions = card.getIn(['cardactions'])
-		    if(cardactions.size > 0) {
+		    if(List.isList(cardactions) && cardactions.size > 0) {
 			let cardaction = cardactions.first()
 			
 			expect(cardaction.getIn(['shortdesc'])).to.equal("Brainstorm")
@@ -289,7 +292,7 @@ describe('ControllerFactory', function() {
 				    })
 			}
 		    }
-		    else {
+		    else if(obs) {
 			obs.next()
 			obs.complete()
 		    }
@@ -318,7 +321,7 @@ describe('ControllerFactory', function() {
 										   return fromJS([
 										       {
 											   exec(gs,ui) {
-											       return brainstorm(payment(1), searchdeck())(gs, ui)
+											       return brainstorm(payment(1), search())(gs, ui)
 											   },
 											   desc:"Pay 1 from Stock, Draw 4 cards; for each climax, search deck for character card;  4 cards to waiting room",
 											   shortdesc:"Brainstorm"
@@ -346,22 +349,23 @@ describe('ControllerFactory', function() {
     it('climax', function(done) {
 	let [gs, controller] = init('climax', 0,  {
 	    updateUI(gs, obs, evt) {
-		
-		if(evt.when !== 'begin') {
-		    expect(evt.evt).to.equal('climax')
-		    let hand = G.hand(gs)
-		    let climax = hand.first();
-		    let exec = C.firstaction(climax)
+		if(obs && evt) {
+		    if(evt.when !== 'begin') {
+			expect(evt.evt).to.equal('climax')
+			let hand = G.hand(gs)
+			let climax = hand.first();
+			let exec = C.firstaction(climax)
 		    // we exec this to 'play' the card
-		    exec().subscribe(gs => {
+			exec().subscribe(gs => {
+			    obs.next(gs)
+			    obs.complete()
+			})
+			
+		    }
+		    else {
 			obs.next(gs)
 			obs.complete()
-		    })
-		    
-		}
-		else {
-		    obs.next(gs)
-		    obs.complete()
+		    }
 		}
 	    }	    
 	})

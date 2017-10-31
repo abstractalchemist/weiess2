@@ -5,15 +5,20 @@ import StartDialog from './start_dialog'
 import { Observable } from 'rxjs'
 const { create, of } = Observable;
 import { buildCardSet, CardSetNameView } from 'weiss-utils'
+import GameStateFactory from './game_state'
 import CardStore from './card_store'
 import { hasavailableactions, currentplayer, inactiveplayer } from './utils'
 import { fromJS } from 'immutable'
 
+
 function TextField({id, label, value, changehandler}) {
-    return (<div className="mdl-textfield mdl-js-textfield">
-	    <input className="mdl-textfield__input" type="text" id={id} value={value} onChange={changehandler}></input>
-	    <label className="mdl-textfield__label" htmlFor={id}></label>
-	    </div>)
+
+
+    return(<div className="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
+	   <input className="mdl-textfield__input" type="text" pattern="-?[0-9]*(\.[0-9]+)?" id={id} value={value} onChange={changehandler}></input>
+	   <label className="mdl-textfield__label" htmlFor={id}>{label}</label>
+	   <span className="mdl-textfield__error">Input is not a number!</span>
+	   </div>)
 }
 
 class Main extends React.Component {
@@ -21,7 +26,7 @@ class Main extends React.Component {
     constructor(props) {
 	//	super()
 	super(props)
-	props.controller.registerUI(this)
+	this.props.controller.registerUI(this)
 	this.state = { game_state: props.game_state,
 		       show_inactive_hand: false}
 
@@ -31,9 +36,11 @@ class Main extends React.Component {
     updateUI(gs, obs, evt) {
 	
 	this.setState({game_state:gs, obs, evt})
-	if(!hasavailableactions(gs) && !this.state.prompt) {
-	    obs.next(gs)
-	    obs.complete()
+	if(obs) {
+	    if(!hasavailableactions(gs) && !this.state.prompt) {
+		obs.next(gs)
+		obs.complete()
+	    }
 	}
     }
 
@@ -66,7 +73,7 @@ class Main extends React.Component {
 	    
 	}
 	componentHandler.upgradeDom();
-	this.props.controller.updategamestate(this.state.game_state)
+	//this.props.controller.updategamestate(this.state.game_state)
     }
 
     loadDecks() {
@@ -97,18 +104,26 @@ class Main extends React.Component {
 		},
 		_ => {
 		    let avail = cards.filter(({info}) => {
-			if(info.level && !new RegExp("C(C|R|X)").test(info.rarity))
+			if(info.level && info.power > 0)
 			    return parseInt(info.level) <= targetLevel
 		    })
 		    
 		    let player = inactiveplayer(this.state.game_state)
 
-		    this.setState({game_state:this.state.game_state
-				   .updateIn([player, 'stage', 'center','left'], card => card.push(fromJS(avail[Math.floor(Math.random() * avail.length)])))
-				   .updateIn([player, 'stage', 'center','middle'], card => card.push(fromJS(avail[Math.floor(Math.random() * avail.length)])))
-				   .updateIn([player, 'stage', 'center','right'], card => card.push(fromJS(avail[Math.floor(Math.random() * avail.length)])))
-				   .updateIn([player, 'stage', 'back','left'], card => card.push(fromJS(avail[Math.floor(Math.random() * avail.length)])))
-				   .updateIn([player, 'stage', 'back','right'], card => card.push(fromJS(avail[Math.floor(Math.random() * avail.length)])))})
+		    this.props.controller.updategamestate(GameStateFactory()
+							  .updateIn(['turn'], _ => 0)
+							  .updateIn(['phase'], _ => 'start')
+							  .updateIn([player, 'level'], level => {
+							      let i = 0;
+							      while(i++ < targetLevel)
+								  level = level.push(fromJS(avail[Math.floor(Math.random() * avail.length)]))
+							      return level
+							  })
+							  .updateIn([player, 'stage', 'center','left'], card => card.push(fromJS(avail[Math.floor(Math.random() * avail.length)])))
+							  .updateIn([player, 'stage', 'center','middle'], card => card.push(fromJS(avail[Math.floor(Math.random() * avail.length)])))
+							  .updateIn([player, 'stage', 'center','right'], card => card.push(fromJS(avail[Math.floor(Math.random() * avail.length)])))
+							  .updateIn([player, 'stage', 'back','left'], card => card.push(fromJS(avail[Math.floor(Math.random() * avail.length)])))
+							  .updateIn([player, 'stage', 'back','right'], card => card.push(fromJS(avail[Math.floor(Math.random() * avail.length)]))))
 		    
 		})
 	
@@ -176,7 +191,7 @@ class Main extends React.Component {
 						   </button>
 						       <button className="mdl-button mdl-js-button" onClick={close_oppos}>
 						       Cancel
-						       </button>
+						   </button>
 						       </div>
 						       </dialog>} })
 				       }
@@ -307,11 +322,11 @@ class Main extends React.Component {
 	CardStore.getcard(cardid).subscribe(
 	    card => {
 		let field = selected_field.split('-')
-		this.setState({game_state:this.state.game_state.updateIn([currentplayer(this.state.game_state)], f => {
+		this.props.controller.updategamestate(this.state.game_state.updateIn([currentplayer(this.state.game_state)], f => {
 		    return f.updateIn(field, loc => {
 			return loc.push(fromJS(card))
 		    })
-		})})
+		}))
 	    })
 	
     }
@@ -323,8 +338,70 @@ class Main extends React.Component {
 	    updateCardView:this.updateCardView.bind(this),
 	    is_building:this.state.is_building,
 	    cardset_coll:this.state.cardset_coll,
-	    addhandler2:(this.state.load_mode === 'place_cards' ? this.addFromSetToField.bind(this) : undefined)
+	    addhandler2:(this.state.load_mode === 'place_cards' ? this.addFromSetToField.bind(this) : undefined),
+	    addFilterOptions:[
+		    <TextField label="Stock Count" id="stock-count" value={this.state.stock_it} changehandler={this.stockIt.bind(this)}/>,
+		    <button className="mdl-button mdl-js-button mdl-button--raised" onClick={this.stockItNow.bind(this)}>
+		    Fill Stock
+		</button>,
+		    <TextField label="Deck Count" id="deck-count" value={this.state.deck_it} changehandler={this.deckIt.bind(this)}/>,
+		    <button className="mdl-button mdl-js-button mdl-button--raised" onClick={this.deckItNow.bind(this)}>
+		    Fill Deck
+		</button>,
+
+	    ]
 	}
+    }
+
+
+    fillIt(field, size) {
+	if(!Array.isArray(field))
+	    field = [field]
+	let buffer = []
+	let gs = this.state.game_state;
+	console.log(`${field}ing from ${this.state.cardset}`)
+	CardStore.getcardsfromset(this.state.cardset)
+	    .map(CardStore.internalmapper)
+	    .toArray()
+	    .map(fromJS)
+	    .subscribe(
+		data => {
+		    let i = 0;
+		    while(i++ < size) {
+			let r = Math.floor(Math.random() * data.length)
+			let card = data.get(r)
+			gs = gs.updateIn([currentplayer(gs)], f => {
+			    return f.updateIn(field, deck => deck.push(card))
+			})
+		    }
+		},
+		err => {
+		},
+		_ => {
+		    this.props.controller.updategamestate(gs)
+		})
+	
+
+    }
+    
+    stockItNow() {
+	console.log(`stocking from ${this.state.cardset}`)
+	this.fillIt('stock', this.state.stock_it)
+	this.setState({stock_it:0})
+    }
+
+    deckItNow(evt) {
+	this.fillIt('deck', this.state.deck_it)
+	this.setState({deck_it:0})
+
+    }
+
+    stockIt(evt) {
+	this.setState({stock_it:evt.currentTarget.value})
+    }
+
+    deckIt(evt) {
+	this.setState({deck_it:evt.currentTarget.value})
     }
     
     render() {
