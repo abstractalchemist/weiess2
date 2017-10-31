@@ -1,0 +1,63 @@
+function currentplayer(gs) {
+    if(!gs)
+	throw "currentplayer(gs) parameter null"
+
+    if(gs.getIn(['turn']) === undefined)
+	throw "invalid turn defined"
+    return `player${gs.getIn(['turn']) % 2 + 1}`
+}
+
+function inactiveplayer(gs) {
+    if(!gs)
+	throw "currentplayer(gs) parameter null"
+
+    if(gs.getIn(['turn']) === undefined)
+	throw "invalid turn defined"
+    return `player${gs.getIn(['turn'])  % 2 + 2}`
+
+}
+
+const render = function(field, gs, player) {
+    if(gs) {
+	player = player || currentplayer(gs)
+	return [player].concat(field)
+    }
+    return field
+	
+}
+
+const GamePositions = {
+    stock(gs, player) {
+	return render(['stock'], gs, player)
+    },
+    clock(gs, player) {
+	return render(['clock'], gs, player)
+    },
+    stage_cl(gs,player) {
+	return render(['stage','center','left'], gs, player)
+    },
+    stage_cm(gs,player) {
+	return render(['stage','center','middle'], gs, player)
+    },
+    stage_cr(gs,player) {
+	return render(['stage','center','right'], gs, player)
+    },
+    stage_bl(gs,player) {
+	return render(['stage','back','left'], gs, player)
+    },
+    stage_cl(gs,player) {
+	return render(['stage','back','right'], gs, player)
+    },
+    level(gs, player) {
+	return render(['level'], gs, player)
+    },
+    clock(gs, player) {
+	return render(['clock'], gs, player)
+    },
+    waiting_room(gs, player) {
+	return render(['waiting_room'], gs, player)
+    }
+}
+
+
+export { currentplayer, inactiveplayer, GamePositions as default }

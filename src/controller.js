@@ -6,7 +6,7 @@ import { isImmutable, List, fromJS } from 'immutable'
 import { shuffle, debug, iscard, currentplayer, findopenpositions, collectactivateablecards, isevent, isclimax, canplay, payment, G, clockDamage } from './utils'
 import { refresh, applyrefreshdamage, searchdeck, drawfromdeck } from './deck_utils'
 import AttackPhase from './attack_phase'
-
+import GamePhases from './game_phases'
 /*
 
   cards have a format 
@@ -76,7 +76,7 @@ const ControllerFactory = function(game_state) {
 
 							     if(f = l.getIn(['availablecardactions'])) {
 								 //console.log(l)
-								 //console.log(`wrapping ${f}`)
+				 				 //console.log(`wrapping ${f}`)
 								 let cardactions = f(gs, evt)
 								 return cardactions.map( action => {
 
@@ -212,31 +212,54 @@ const ControllerFactory = function(game_state) {
 	next() {
 	    let currentphase = _gs.getIn([currentplayer(_gs), 'phase'])
 	    switch(currentphase) {
-	    case 'standup': {
+	    case GamePhases.standup.id: {
 		draw().subscribe(
 		    gs => {
 			_gs = gs
+		    },
+		    err => {
+		    },
+		    _ => {
+			_ui.updateUI(_gs)
 		    })
+		
 	    }
 		break;
-	    case 'draw' : {
+	    case GamePhases.draw.id : {
 		clock().subscribe(
 		    gs => {
 			_gs = gs
+		    },
+		    err => {
+		    },
+		    _ => {
+			_ui.updateUI(_gs)
 		    })
 	    }
 		break;
-	    case 'clock' : {
-		main().subscribe(gs => {
-		    _gs = gs
-		})
+	    case GamePhases.clock.id : {
+		main().subscribe(
+		    gs => {
+			_gs = gs
+		    },
+		    err => {
+		    },
+		    _ => {
+			_ui.updateUI(_gs)
+		    })
 	    }
 		break;
+	    case GamePhases.not_started.id:
 	    default: {
 		// undefined, so start
 		standup().subscribe(
 		    gs => {
 			_gs = gs
+		    },
+		    err => {
+		    },
+		    _ => {
+			_ui.updateUI(_gs)
 		    })
 	    }
 		break;
@@ -262,8 +285,8 @@ const ControllerFactory = function(game_state) {
 
 	    let standRC = gs => gs.updateIn([currentplayer(gs), 'stage', 'center', 'right'], standcard)
 	    let player = currentplayer(_gs)
-	    return of(_gs.setIn(['phase'], 'standup'))
-		.mergeMap(updateUI({evt:"phase_begin"}))
+	    return of(GamePhases.standup.set(_gs))
+		.mergeMap(updateUI(GamePhases.standup.start()))
 		.map(standLC)
 		.mergeMap(updateUI({evt:"stand",pos:[player,'stage','center','left']}))
 		.map(standCC)
@@ -277,7 +300,8 @@ const ControllerFactory = function(game_state) {
 	    let drawIt = gs => {
 		return drawfromdeck(1, 'hand', gs)
 	    }
-	    return of(_gs.updateIn(['phase'], _ => 'draw'))
+	    return of(GamePhases.draw.set(_gs))
+		.mergeMap(updateUI(GamePhases.draw.start()))
 		.map(drawIt)
 		.map(applyrefreshdamage)
 		.mergeMap(clockDamage(_ui))
@@ -301,9 +325,10 @@ const ControllerFactory = function(game_state) {
 		    ])))
 		})
 	    }
-	    return of(_gs)
+	    return of(GamePhases.clock.set(_gs))
+	    	.mergeMap(updateUI(GamePhases.clock.start()))
 		.map(clock)
-		.mergeMap(updateUI({ evt: "clock" }))
+//	    	.mergeMap(updateUI({ evt: "clock" }))
 		.map(gs => {
 		    let hand = G.hand(gs)
 		    let card = hand.findIndex(c => clockIt === c.getIn(['info','id']))
@@ -321,6 +346,7 @@ const ControllerFactory = function(game_state) {
 	    
 	    let moveCardActions = (srcstage, srcpos) => {
 		return gs => {
+//		    console.log(`adding move phase to ${srcstage} => ${srcpos} with gs ${gs}`)
 		    return gs.updateIn([currentplayer(gs), 'stage', srcstage, srcpos], cards => cards.update(0, card => {
 			if(iscard(card))
 			    return card.updateIn(['actions'], _ => fromJS([
@@ -330,36 +356,36 @@ const ControllerFactory = function(game_state) {
 					    return {
 						id:'stage-selector',
 						prompt: 
-						<StageSelector onselect={
-						    ([deststage, destpos]) => {
-							let cardpos = gs.getIn([currentplayer(gs), 'stage', srcstage, srcpos])
-							let carddes = gs.getIn([currentplayer(gs), 'stage', deststage, destpos])
-							
-							
-							// all cards here go into the waiting room
-							if(iscard(carddes.first())) {
+						    <StageSelector onselect={
+							([deststage, destpos]) => {
+							    let cardpos = gs.getIn([currentplayer(gs), 'stage', srcstage, srcpos])
+							    let carddes = gs.getIn([currentplayer(gs), 'stage', deststage, destpos])
 							    
-							    gs = gs.updateIn([currentplayer(gs), 'waiting_room'], waiting_room => carddes.concat(waiting_room))
+							    
+							    // all cards here go into the waiting room
+							    if(iscard(carddes.first())) {
+								
+								gs = gs.updateIn([currentplayer(gs), 'waiting_room'], waiting_room => carddes.concat(waiting_room))
+							    }
+							    
+							    return of(gs
+								      .setIn([currentplayer(gs), 'stage', deststage, destpos], cardpos)
+								      .setIn([currentplayer(gs), 'stage', srcstage, srcpos], List()))
+							    //  .mergeMap(updateUI({ evt: "move", id:cardpos.first().getIn(['info','id']) }))
+								.subscribe(
+								    gs => {
+									obs(gs)
+								    })
+							    
 							}
-							
-							return of(gs
-								  .setIn([currentplayer(gs), 'stage', deststage, destpos], cardpos)
-								  .setIn([currentplayer(gs), 'stage', srcstage, srcpos], List()))
-							  //  .mergeMap(updateUI({ evt: "move", id:cardpos.first().getIn(['info','id']) }))
-							    .subscribe(
-								gs => {
-								    obs(gs)
-								})
-							
-						    }
-						} openpositions={[['center','left'],
-								  ['center','middle'],
-								  ['center','right'],
-								  ['back','left'],
-								  ['back','right']]}/>
+						    } openpositions={[['center','left'],
+								      ['center','middle'],
+								      ['center','right'],
+								      ['back','left'],
+								      ['back','right']]}/>
 					    }
 					})
-					    
+					
 				    },
 				    desc: "Move"
 				}
@@ -378,25 +404,25 @@ const ControllerFactory = function(game_state) {
 				    return _ui.prompt(obs => {
 					return {
 					    prompt:
-						       <StageSelector onselect={
-							   ([deststage, destpos]) => {
-							       return of(playcard(gs, h, deststage, destpos))
-								   .mergeMap(updateUI({ evt: "play", id:h.getIn(['info','id']) }))
-								   .subscribe(gs => {
-								       obs(gs)
-								   })
-							   }
-						       } openpositions={
-							   (_ => {
-							       if(isevent(h))
-								   return [['event']]
-							       return  [['center','left'],
-									['center','middle'],
-									['center','right'],
-									['back','left'],
-									['back','right']]
-							   })()
-						       } />,
+						<StageSelector onselect={
+						    ([deststage, destpos]) => {
+							return of(playcard(gs, h, deststage, destpos))
+							    .mergeMap(updateUI({ evt: "play", id:h.getIn(['info','id']) }))
+							    .subscribe(gs => {
+								obs(gs)
+							    })
+						    }
+						} openpositions={
+						    (_ => {
+							if(isevent(h))
+							    return [['event']]
+							return  [['center','left'],
+								 ['center','middle'],
+								 ['center','right'],
+								 ['back','left'],
+								 ['back','right']]
+						    })()
+						} />,
 					    id:'stage-selector'
 					}
 				    })
@@ -410,7 +436,8 @@ const ControllerFactory = function(game_state) {
 		
 	    }
 
-	    return of(_gs.updateIn(['phase'], _ => 'main'))
+	    return of(GamePhases.main.set(_gs))
+		.mergeMap(updateUI(GamePhases.main.start()))
 		.map(moveCardActions('center','left'))
 	    	.map(moveCardActions('center','middle'))
 	    	.map(moveCardActions('center','right'))
@@ -455,10 +482,10 @@ const ControllerFactory = function(game_state) {
 			    ])
 			})
 		    })
-		})
+		}) 
 	    }
-	    return of(_gs)
-		.mergeMap(updateUI({evt:"climax",when:"begin"}))
+	    return of(GamePhases.climax.set(_gs))
+		.mergeMap(updateUI(GamePhases.climax.start()))
 		.map(selectclimax)
 		.mergeMap(updateUI({evt:"climax"}))
 	    

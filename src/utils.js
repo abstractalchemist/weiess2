@@ -1,32 +1,13 @@
 import { fromJS, isImmutable, List } from 'immutable'
 import { Observable } from 'rxjs'
 const { of } = Observable
+import GamePositions, { currentplayer, inactiveplayer } from './game_pos'
 
 // returns true if c is a card
 const iscard = function(c) {
     return c !== undefined && isImmutable(c) && c.has('active') && c.has('info');
 }
 
-
-
-function currentplayer(gs) {
-    if(!gs)
-	throw "currentplayer(gs) parameter null"
-
-    if(gs.getIn(['turn']) === undefined)
-	throw "invalid turn defined"
-    return `player${gs.getIn(['turn']) % 2 + 1}`
-}
-
-function inactiveplayer(gs) {
-    if(!gs)
-	throw "currentplayer(gs) parameter null"
-
-    if(gs.getIn(['turn']) === undefined)
-	throw "invalid turn defined"
-    return `player${gs.getIn(['turn'])  % 2 + 2}`
-
-}
 
 function getposition(location) {
     return (gs, player) => {
@@ -35,6 +16,7 @@ function getposition(location) {
     }
 }
 
+
 const G = {
     stock:getposition('stock'),
     stage:getposition('stage'),
@@ -42,22 +24,24 @@ const G = {
     deck:getposition('deck'),
     memory:getposition('memory'),
     clock:getposition('clock'),
+    climax:getposition('climax'),
     waiting_room:getposition('waiting_room'),
     level:getposition('level')
+    
 }
 
 const findopenpositions = function(gs) {
     let positions = []
 
-    if(iscard(gs.getIn([currentplayer(gs), 'stage', 'center', 'left']).first()))
+    if(iscard(gs.getIn(GamePositions.stage_cl(gs)).first()))
 	positions.push(['center','left'])
-    if(iscard(gs.getIn([currentplayer(gs), 'stage', 'center', 'middle']).first()))
+    if(iscard(gs.getIn(GamePositions.stage_cm(gs)).first()))
 	positions.push(['center','middle'])
-    if(iscard(gs.getIn([currentplayer(gs), 'stage', 'center', 'right']).first()))
+    if(iscard(gs.getIn(GamePositions.stage_cr(gs)).first()))
 	positions.push(['center','right'])
-    if(iscard(gs.getIn([currentplayer(gs), 'stage', 'back', 'left']).first()))
-	positions.push(['center','left'])
-    if(iscard(gs.getIn([currentplayer(gs), 'stage', 'back', 'right']).first()))
+    if(iscard(gs.getIn(GamePositions.stage_bl(gs)).first()))
+	positions.push(['back','left'])
+    if(iscard(gs.getIn(GamePositions.stage_br(gs)).first()))
 	positions.push(['back','right'])
     return positions;
 }
@@ -76,8 +60,10 @@ const implcollectplayercards = function(player, gs) {
     pushCard('back','left')
     pushCard('back','right')
     return activecards.concat(G.level(gs, player))
+	.concat(G.climax(gs, player))
 	.concat(G.clock(gs, player))
 	.concat(G.memory(gs, player))
+	.concat(G.hand(gs, player))
 	.concat(G.waiting_room(gs, player))
 }
 
@@ -153,10 +139,10 @@ const clockDamage = (ui, player) => {
 
 			    let index = selectable.findIndex(c => id === c.getIn(['info','id']))
 			    let card = selectable.get(index)
-			    func(gs.updateIn([player, 'level'],  level => level.insert(0, card)
-					     .updateIn([player, 'clock'], clock => rem)
-					     .updateIn([player, 'waiting_room'], wr => rem.concat(wr))))
-					    
+			    func(gs.updateIn(GamePositions.level(gs, player),  level => level.insert(0, card))
+				 .updateIn(GamePositions.clock(gs, player), clock => rem)
+				 .updateIn(GamePositions.waiting_room(gs, player), wr => rem.concat(wr)))
+			    
 			    
 			}
 		    } selection={selectable}/>,
@@ -177,8 +163,8 @@ const payment = function(cost) {
 	    let payment = stock.slice(0, cost)
 	    let rem = stock.slice(cost)
 	    
-	    return gs.updateIn([currentplayer(gs), 'stock'], _ => rem)
-		.updateIn([currentplayer(gs), 'waiting_room'], room => payment.concat(room))
+	    return gs.updateIn(GamePositions.stock(gs), _ => rem)
+		.updateIn(GamePositions.waiting_room(gs), room => payment.concat(room))
 	}
 	return gs;
 
@@ -267,19 +253,35 @@ const dealdamage = function(count, gs, cancelable = true) {
 }
 
 // returns true if there are any user actions required;  used primarily by user interface to determine whether to push on or not
-const hasavailableactions = function(gs) {
+const hasavailableactions = function(gs, field) {
+//    console.log(`checking ${field}`)
     let hasactions = false;
-    collectactivateablecards(gs).forEach(T => {
-	if(!hasactions) {
-	    if(iscard(T)) {
-		hasactions = (T.getIn(['actions']) && T.getIn(['actions']).size > 0) || (T.getIn(['cardactions']) && T.getIn(['cardactions']).size > 0)
+    if(!field) {
+	collectactivateablecards(gs).forEach(T => {
+	    if(!hasactions) {
+		//	    console.log(T)
+		if(iscard(T)) {
+		    hasactions = (T.getIn(['actions']) && T.getIn(['actions']).size > 0) || (T.getIn(['cardactions']) && T.getIn(['cardactions']).size > 0)
+		}
+		else if(List.isList(T) && iscard(T.first())) {
+		    T = T.first()
+		    hasactions = (T.getIn(['actions']) && T.getIn(['actions']).size > 0) || (T.getIn(['cardactions']) && T.getIn(['cardactions']).size > 0)
+		}
 	    }
-	    else if(List.isList(T) && iscard(T.first())) {
-		T = T.first()
-		hasactions = (T.getIn(['actions']) && T.getIn(['actions']).size > 0) || (T.getIn(['cardactions']) && T.getIn(['cardactions']).size > 0)
+	})
+
+    }
+    else {
+	if(!Array.isArray(field))
+	    field = [field]
+	gs.getIn([currentplayer(gs)]).getIn(field).forEach(T => {
+	    if(!hasactions) {
+		if(iscard(T)) {
+		    hasactions = (T.getIn(['actions']) && T.getIn(['actions']).size > 0) || (T.getIn(['cardactions']) && T.getIn(['cardactions']).size > 0)
+		}
 	    }
-	}
-    })
+	})
+    }
     return hasactions;
 }
 

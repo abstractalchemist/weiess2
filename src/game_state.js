@@ -1,5 +1,6 @@
 import { Observable } from 'rxjs'
 import { fromJS, Map, List } from 'immutable'
+import GamePhases from './game_phases'
 
 function createfield() {
     return {
@@ -27,7 +28,7 @@ function createfield() {
 
 const GameStateFactory = function() {
     return fromJS({
-	phase:'start',
+	phase:GamePhases.not_started.id,
 	triggeraction:undefined,
 	applyrefreshdamage:false,
 	turn:0,
