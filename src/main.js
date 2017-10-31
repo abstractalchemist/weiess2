@@ -453,16 +453,16 @@ class Main extends React.Component {
 			let cardsinhand = this.state.game_state.getIn([inactiveplayer(this.state.game_state), 'hand']);
 			let space = 12 - ((2*cardsinhand.size) % 12);
 			
-			return hand({game_state:this.state.game_state, player:inactiveplayer(this.state.game_state)}).concat([<div className={"mdl-cell mdl-cell--" + space + "-col"}/>,<div className={"mdl-cell mdl-cell--12-col spacer"} />]);
+			return hand({game_state:this.state.game_state, player:inactiveplayer(this.state.game_state)}, this).concat([<div className={"mdl-cell mdl-cell--" + space + "-col"}/>,<div className={"mdl-cell mdl-cell--12-col spacer"} />]);
 			
 		    }
 		})()}
-		{fieldReverse(this.state)}
+		{fieldReverse(this.state, this)}
 
 		<div className="mdl-cell mdl-cell--12-col spacer"/>
-		{field(this.state)}
+		{field(this.state, this)}
 		<div className="mdl-cell mdl-cell--12-col spacer"/>
-		{hand(this.state)}
+		{hand(this.state, this)}
 		</div>
 
 		</div>

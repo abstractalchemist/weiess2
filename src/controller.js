@@ -276,14 +276,6 @@ const ControllerFactory = function(game_state) {
 	draw() {
 	    let drawIt = gs => {
 		return drawfromdeck(1, 'hand', gs)
-		// gs = refresh(gs)
-
-		// // deck should be non-zero
-		// let deck = G.deck(gs)
-		
-		// let card = deck.first();
-		// return refresh(gs.updateIn([currentplayer(gs), 'hand'], hand => iscard(card) ? hand.push(card) : hand)
- 		// 	       .updateIn([currentplayer(gs), 'deck'], deck => deck.shift()))
 	    }
 	    return of(_gs.updateIn(['phase'], _ => 'draw'))
 		.map(drawIt)

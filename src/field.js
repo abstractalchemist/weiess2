@@ -16,7 +16,7 @@ function text({active,info}) {
     return `Level ${lvl}, Power ${cl}`
 }
 
-function Card({obs,card}) {
+function Card({ui,gs,obs,card}) {
     card = card || { active: {}, info: {} }
     let style = Object.assign({}, master);
     if(card.info.image) {
@@ -46,6 +46,25 @@ function Card({obs,card}) {
 			    
 		    })
 		}
+	    })()}
+	    {(_ => {
+		if(card.cardactions) {
+		    return card.cardactions.map(action => {
+			return (<button className="mdl-button mdl-js-button"
+				onClick={
+				    evt => {
+					action.exec(gs,ui).subscribe(
+					    gs => {
+						obs.next(gs)
+						obs.complete()
+ 					    })
+				    }
+				}>
+				
+				{action.shortDesc}
+				</button>)
+		    })
+		}
 	    })()
 	    }
 	    </div>
@@ -54,7 +73,7 @@ function Card({obs,card}) {
     
 }
 
-function StageCard({controller,obs,gs,cards}) {
+function StageCard({ui,obs,gs,cards}) {
     cards = cards || [];
     let card = cards[0] || {active:{},info:{}};
     let style = Object.assign({}, master)
@@ -74,14 +93,12 @@ function StageCard({controller,obs,gs,cards}) {
 			return (<button className="mdl-button mdl-js-button"
 				onClick={
 				    evt => {
-					exec().subscribe(
-					    ({game_state:gs, evt}) => {
-						controller.updateUI(evt)(gs).subscribe(
-						    gs => {
-							obs.next(gs)
-							obs.complete()
-						    })
+					exec(gs, ui).subscribe(
+					    gs => {
+						obs.next(gs)
+						obs.complete()
 					    })
+					    
 				    }
 				}>
 				{shortdesc}
@@ -191,22 +208,22 @@ function CardSlot({id, children}) {
 	    </div>)
 }
 
-function fieldReverse({game_state,obs, controller}) {
+function fieldReverse({game_state,obs}, controller) {
     
     let gs = game_state.getIn([inactiveplayer(game_state)]).toJS();
 //    console.log(gs)
     let center= [ <SpacerSlot key='spacer-1' id='spacer-1' width={2} />,  // spacer
 		  <SpacerSlot key='spacer-2' id='spacer-2' width={2} />,  // spacer		  
 		  <CardSlot id='left-center-player2' key='left-center-player2'>
-		  <StageCard controller={controller} obs={obs} cards={gs.stage.center.left}/>
+		  <StageCard ui={controller} obs={obs} cards={gs.stage.center.left}/>
 		  </CardSlot>,  // left center
 		  
 		  <CardSlot id='middle-center-player2' key='middle-center-player2' >
-		  <StageCard controller={controller} obs={obs} cards={gs.stage.center.middle}/>
+		  <StageCard ui={controller} obs={obs} cards={gs.stage.center.middle}/>
 		  </CardSlot>,  // middle center
 		  
 		  <CardSlot id='right-center-player2' key='right-center-player2' >
-		  <StageCard controller={controller} obs={obs} cards={gs.stage.center.right}/>
+		  <StageCard ui={controller} obs={obs} cards={gs.stage.center.right}/>
 		  </CardSlot>,  // right center
 		  
 
@@ -221,11 +238,11 @@ function fieldReverse({game_state,obs, controller}) {
 		 <SpacerSlot key='spacer-3' id='spacer-3' width={3} />, //spacer
 		 
 		 <CardSlot id='back-left-player2' key='back-left-player2' >
-		 <StageCard controller={controller} obs={obs} cards={gs.stage.back.left}/>
+		 <StageCard ui={controller} obs={obs} cards={gs.stage.back.left}/>
 		 </CardSlot>, // back left
 		 
 		 <CardSlot id='back-right-player2' key='back-right-player2' >
-		 <StageCard controller={controller} obs={obs} cards={gs.stage.back.right}/>
+		 <StageCard ui={controller} obs={obs} cards={gs.stage.back.right}/>
 		 </CardSlot>, // back right
 		 
 		 <SpacerSlot key='spacer-4' id='spacer-4' width={1} />,  // spacer
@@ -260,20 +277,20 @@ function fieldReverse({game_state,obs, controller}) {
     
 }
 
-function field({game_state,obs,controller}) {
+function field({game_state,obs}, controller) {
     let gs = game_state.getIn([currentplayer(game_state)]).toJS();
 //    console.log(gs.waiting_room)
     let center= [ <SpacerSlot key='spacer-6' id='spacer-6' width={2} />,  // spacer
 		  <CardSlot id='left-center-player1' key='left-center-player1' >
-		  <StageCard controller={controller} obs={obs} cards={gs.stage.center.left}/>
+		  <StageCard ui={controller} obs={obs} cards={gs.stage.center.left}/>
 		  </CardSlot>,  // left center
 		  
 		  <CardSlot id='middle-center-player1' key='middle-center-player1' >
-		  <StageCard controller={controller} obs={obs} cards={gs.stage.center.middle}/>
+		  <StageCard ui={controller} obs={obs} cards={gs.stage.center.middle}/>
 		  </CardSlot>,  // middle center
 		  
 		  <CardSlot id='right-center-player1' key='right-center-player1' >
-		  <StageCard controller={controller} obs={obs} cards={gs.stage.center.right}/>
+		  <StageCard ui={controller} obs={obs} cards={gs.stage.center.right}/>
 		  </CardSlot>,  // right center
 		  
 		  <SpacerSlot key='spacer-12' id='spacer-7' width={2} />,  // spacer
@@ -289,11 +306,11 @@ function field({game_state,obs,controller}) {
 		 <SpacerSlot key='spacer-8' id='spacer-8' width={1} />, //spacer
 		 
 		 <CardSlot id='back-left-player1' key='back-left-player1' >
-		 <StageCard controller={controller} obs={obs} cards={gs.stage.back.left}/>
+		 <StageCard ui={controller} obs={obs} cards={gs.stage.back.left}/>
 		 </CardSlot>, // back left
 		 
 		 <CardSlot id='back-right-player1' key='back-right-player1' >
-		 <StageCard controller={controller} obs={obs} cards={gs.stage.back.right}/>
+		 <StageCard ui={controller} obs={obs} cards={gs.stage.back.right}/>
 		 </CardSlot>, // back right
 		 
 		 <SpacerSlot key='spacer-9' id='spacer-9' width={3} />,  // spacer
@@ -325,12 +342,12 @@ function field({game_state,obs,controller}) {
     return [].concat(center,back,behind)
 }
 
-function hand({game_state,player,obs}) {
+function hand({game_state,player,obs}, ui) {
     player = player || currentplayer(game_state)
     let hand = game_state.getIn([player,'hand'])
     return hand.toJS().map((v,i) => {
 	return (<CardSlot id={'h' + i} key={'h' + i}>
-		<Card card={v} obs={obs}/>
+		<Card ui={ui} gs={game_state} card={v} obs={obs}/>
 		</CardSlot>)
     });
 
