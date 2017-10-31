@@ -45,11 +45,14 @@ const GamePositions = {
     stage_bl(gs,player) {
 	return render(['stage','back','left'], gs, player)
     },
-    stage_cl(gs,player) {
+    stage_br(gs,player) {
 	return render(['stage','back','right'], gs, player)
     },
     level(gs, player) {
 	return render(['level'], gs, player)
+    },
+    hand(gs, player) {
+	return render(['hand'], gs, player)
     },
     clock(gs, player) {
 	return render(['clock'], gs, player)

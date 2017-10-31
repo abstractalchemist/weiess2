@@ -118,8 +118,9 @@ describe('ControllerFactory', function() {
 	let card = basecard()
 	let [gs, controller] = init('clock', 0, {
 	    updateUI(gs, obs, evt) {
-		if(evt && !evt.when && obs) {
-		
+//		console.log(` has gs ${gs !== gs}, obs ${obs}, evt ${evt}`)
+		if(hasavailableactions(gs)) {
+		    console.log('looking at available actions')
 		    let hand = gs.getIn([currentplayer(gs),'hand'])
 		    let action = C.firstaction(hand)
 		    if(action)
@@ -129,6 +130,7 @@ describe('ControllerFactory', function() {
 			})
 		}
 		else {
+		    console.log(` no available actions`)
 		    if(obs) {
 			obs.next(gs)
 			obs.complete()

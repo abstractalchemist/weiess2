@@ -186,12 +186,16 @@ function WaitingCard({cards}) {
     
 }
 
-function ClockCard({}) {
-    let style = master
+function ClockCard({clock}) {
+    let style = Object.assign({}, master)
+    if(clock && clock[0]) {
+	style['background'] = 'url(' + clock[0].info.image + ')'
+    }
     return (<div className="mdl-card game-card" style={style}>
 	    <div className="mdl-card__title" style={style}>
 	    </div>
 	    <div className="mdl-card__supporting-text">
+	    Clock has {clock.length}
 	    </div>
 	    <div className="mdl-card__actions">
 	    </div>
@@ -263,7 +267,7 @@ function fieldReverse({game_state,obs}, controller) {
 		   </CardSlot>,
 
 		   <CardSlot id='clock-player2' key='clock-player2' >
-		   <ClockCard />
+		   <ClockCard {...gs}/>
 		   </CardSlot>,
 
 		   
@@ -331,7 +335,7 @@ function field({game_state,obs}, controller) {
 		   </CardSlot>,
 
 		   <CardSlot id='clock-player1' key='clock-player1' >
-		   <ClockCard />
+		   <ClockCard {...gs}/>
 		   </CardSlot>,
 
 		   <SpacerSlot key='spacer-11' id='spacer-11' width={3} />,

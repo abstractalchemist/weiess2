@@ -174,7 +174,7 @@ const payment = function(cost) {
 
 const canplay = function(gs, h) {
     // can play if level 0
-    return h.getIn(['info','level']) === 0 ||
+    return h.getIn(['active','level']) === 0 ||
 
     // have the stock
     ( h.getIn(['info', 'cost']) <= G.stock(gs).size &&
@@ -185,6 +185,41 @@ const canplay = function(gs, h) {
 
       // and current level ( this is a function since continous abilites are typically a function of game_state )
       G.level(gs).size >= h.getIn(['active','level'])(gs) )
+}
+
+const clearactions = function(gs) {
+    return gs
+	.updateIn(GamePositions.stage_cl(gs), s => {
+	    if(iscard(s.first))
+		return s.update(0, c => c.updateIn(['actions'], _ => List()))
+	    return s
+	})
+	.updateIn(GamePositions.stage_cm(gs), s => {
+	    if(iscard(s.first))
+		return s.update(0, c => c.updateIn(['actions'], _ => List()))
+	    return s
+	})
+	.updateIn(GamePositions.stage_cr(gs), s => {
+	    if(iscard(s.first))
+		return s.update(0, c => c.updateIn(['actions'], _ => List()))
+	    return s
+	})
+	.updateIn(GamePositions.stage_bl(gs), s => {
+	    if(iscard(s.first))
+		return s.update(0, c => c.updateIn(['actions'], _ => List()))
+	    return s
+	})
+	.updateIn(GamePositions.stage_br(gs), s => {
+	    if(iscard(s.first))
+		return s.update(0, c => c.updateIn(['actions'], _ => List()))
+	    return s
+	})
+	.updateIn(GamePositions.hand(gs), hand => {
+	    return hand.map(c => {
+		return c.updateIn(['actions'], _ => List())
+	    })
+	})
+    
 }
 
 const findstageposition = function(gs, card) {
@@ -254,7 +289,7 @@ const dealdamage = function(count, gs, cancelable = true) {
 
 // returns true if there are any user actions required;  used primarily by user interface to determine whether to push on or not
 const hasavailableactions = function(gs, field) {
-//    console.log(`checking ${field}`)
+    //    console.log(`checking ${field}`)
     let hasactions = false;
     if(!field) {
 	collectactivateablecards(gs).forEach(T => {
@@ -285,4 +320,4 @@ const hasavailableactions = function(gs, field) {
     return hasactions;
 }
 
-export { debug, iscard, findopenpositions, currentplayer, collectactivateablecards, inactiveplayer, isevent, isclimax, canplay, payment, findcardonstage, findstageposition, G, dealdamage, clockDamage, hasavailableactions }
+export { debug, iscard, findopenpositions, currentplayer, collectactivateablecards, inactiveplayer, isevent, isclimax, canplay, payment, findcardonstage, findstageposition, G, dealdamage, clockDamage, hasavailableactions, clearactions }

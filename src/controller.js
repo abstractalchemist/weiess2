@@ -3,7 +3,7 @@ import React from 'react'
 import StageSelector from './stageselector'
 const { of, create } = Observable;
 import { isImmutable, List, fromJS } from 'immutable'
-import { shuffle, debug, iscard, currentplayer, findopenpositions, collectactivateablecards, isevent, isclimax, canplay, payment, G, clockDamage } from './utils'
+import { shuffle, debug, iscard, currentplayer, findopenpositions, collectactivateablecards, isevent, isclimax, canplay, payment, G, clockDamage, clearactions } from './utils'
 import { refresh, applyrefreshdamage, searchdeck, drawfromdeck } from './deck_utils'
 import AttackPhase from './attack_phase'
 import GamePhases from './game_phases'
@@ -57,8 +57,8 @@ const ControllerFactory = function(game_state) {
     // gs - gamestate
     // evt - the event that occurred
     const applyActions = (gs, evt, next) => {
-
-	collectactivateablecards(gs).forEach( T => {
+	let activecards = collectactivateablecards(gs)
+	activecards.forEach( T => {
 	    let f = undefined;
 	    if(f =  T.getIn(['passiveactions']))
 		gs = f(gs, evt)
@@ -210,14 +210,15 @@ const ControllerFactory = function(game_state) {
 
 	// called when current player ends the current phase
 	next() {
-	    let currentphase = _gs.getIn([currentplayer(_gs), 'phase'])
+	    let currentphase = _gs.getIn(['phase'])
 	    switch(currentphase) {
 	    case GamePhases.standup.id: {
-		draw().subscribe(
+		this.draw().subscribe(
 		    gs => {
 			_gs = gs
 		    },
 		    err => {
+			alert(err)
 		    },
 		    _ => {
 			_ui.updateUI(_gs)
@@ -226,11 +227,12 @@ const ControllerFactory = function(game_state) {
 	    }
 		break;
 	    case GamePhases.draw.id : {
-		clock().subscribe(
+		this.clock().subscribe(
 		    gs => {
 			_gs = gs
 		    },
 		    err => {
+			alert(err)
 		    },
 		    _ => {
 			_ui.updateUI(_gs)
@@ -238,11 +240,12 @@ const ControllerFactory = function(game_state) {
 	    }
 		break;
 	    case GamePhases.clock.id : {
-		main().subscribe(
+		this.main().subscribe(
 		    gs => {
 			_gs = gs
 		    },
 		    err => {
+			alert(err)
 		    },
 		    _ => {
 			_ui.updateUI(_gs)
@@ -252,7 +255,7 @@ const ControllerFactory = function(game_state) {
 	    case GamePhases.not_started.id:
 	    default: {
 		// undefined, so start
-		standup().subscribe(
+		this.standup().subscribe(
 		    gs => {
 			_gs = gs
 		    },
@@ -271,7 +274,6 @@ const ControllerFactory = function(game_state) {
 
 	// called when the current player enters the standup phase
 	standup() {
-
 	    let standcard = cards => cards.update(0, card => {
 		if(iscard(card))
 		    return card.updateIn(['status'], _ => 'stand')
@@ -286,6 +288,7 @@ const ControllerFactory = function(game_state) {
 	    let standRC = gs => gs.updateIn([currentplayer(gs), 'stage', 'center', 'right'], standcard)
 	    let player = currentplayer(_gs)
 	    return of(GamePhases.standup.set(_gs))
+		.map(clearactions)
 		.mergeMap(updateUI(GamePhases.standup.start()))
 		.map(standLC)
 		.mergeMap(updateUI({evt:"stand",pos:[player,'stage','center','left']}))
@@ -301,6 +304,7 @@ const ControllerFactory = function(game_state) {
 		return drawfromdeck(1, 'hand', gs)
 	    }
 	    return of(GamePhases.draw.set(_gs))
+		.map(clearactions)
 		.mergeMap(updateUI(GamePhases.draw.start()))
 		.map(drawIt)
 		.map(applyrefreshdamage)
@@ -326,15 +330,23 @@ const ControllerFactory = function(game_state) {
 		})
 	    }
 	    return of(GamePhases.clock.set(_gs))
+		.map(clearactions)
 	    	.mergeMap(updateUI(GamePhases.clock.start()))
 		.map(clock)
-//	    	.mergeMap(updateUI({ evt: "clock" }))
+	    	.mergeMap(updateUI({ evt: "clock" }))
 		.map(gs => {
 		    let hand = G.hand(gs)
 		    let card = hand.findIndex(c => clockIt === c.getIn(['info','id']))
-		    let c = hand.get(card)
-		    return gs.updateIn([currentplayer(gs), 'hand'], hand => hand.delete(card))
-			.updateIn([currentplayer(gs), 'clock'], clock => iscard(c) ? clock.insert(0, c) : clock)
+		    if(card >= 0) {
+			let c = hand.get(card)
+			 
+			gs= gs.updateIn([currentplayer(gs), 'hand'], hand => hand.delete(card))
+			    .updateIn([currentplayer(gs), 'clock'], clock => iscard(c) ? clock.insert(0, c) : clock)
+			gs = drawfromdeck(2, 'hand', gs);
+			
+			   
+		    }
+		    return gs;
 		    
 		})
 	    
@@ -437,6 +449,7 @@ const ControllerFactory = function(game_state) {
 	    }
 
 	    return of(GamePhases.main.set(_gs))
+		.map(clearactions)
 		.mergeMap(updateUI(GamePhases.main.start()))
 		.map(moveCardActions('center','left'))
 	    	.map(moveCardActions('center','middle'))
@@ -485,14 +498,21 @@ const ControllerFactory = function(game_state) {
 		}) 
 	    }
 	    return of(GamePhases.climax.set(_gs))
+		.map(clearactions)
 		.mergeMap(updateUI(GamePhases.climax.start()))
 		.map(selectclimax)
 		.mergeMap(updateUI({evt:"climax"}))
 	    
 	},
 	attack() {
-	    const a = AttackPhase(_gs, _ui)
-	    return a.resolve()
+
+	    return of(GamePhases.attack.set(_gs))
+		.map(clearactions)
+		.mergeMap(updateUI(GamePhases.attack.start()))
+		.mergeMap(gs => {
+		    const a = AttackPhase(gs, _ui)
+		    return a.resolve()
+		})
 	}
     }
 }

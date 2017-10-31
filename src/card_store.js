@@ -4,11 +4,19 @@ import { Observable } from 'rxjs'
 export default (function() {
 
     const internalmapper = card => {
+	let level = parseInt(card.level)
+	let power = parseInt(card.power)
+	let soul = parseInt(card.soul)
+	let cost = parseInt(card.cost)
 	return {
-	    info:Object.assign({},card,{ title:card.name }),
+	    info:Object.assign({},card,{ title:card.name,level, power, soul, cost }),
 	    active:{
 		power:0,
-		level:card.level
+		level,
+		power,
+		soul,
+		cost
+		
 	    }
 	}
     }

@@ -9,7 +9,7 @@ import GameStateFactory from './game_state'
 import CardStore from './card_store'
 import { hasavailableactions, currentplayer, inactiveplayer } from './utils'
 import { fromJS } from 'immutable'
-
+import GamePhases from './game_phases'
 
 function TextField({id, label, value, changehandler}) {
 
@@ -37,10 +37,17 @@ class Main extends React.Component {
 	
 	this.setState({game_state:gs, obs, evt})
 	if(obs) {
+	    console.log(`observing ${evt.evt}`)
+	    
 	    if(!hasavailableactions(gs) && !this.state.prompt) {
+		console.log(`no available actions, leaving`)
 		obs.next(gs)
 		obs.complete()
+//		setTimeout(this.turn.bind(this), 2000)
 	    }
+	}
+	else {
+	    console.log(`no obs, evt ${evt}`)
 	}
     }
 
@@ -196,7 +203,7 @@ class Main extends React.Component {
 						       </dialog>} })
 				       }
 				   }>
-				   Populate
+ 				   Populate
 				   </button>
 				   <button className="mdl-button mdl-js-button" onClick={close}>
 				   Cancel
@@ -368,8 +375,9 @@ class Main extends React.Component {
 		data => {
 		    let i = 0;
 		    while(i++ < size) {
-			let r = Math.floor(Math.random() * data.length)
+			let r = Math.floor(Math.random() * data.size)
 			let card = data.get(r)
+			console.log(`pushing ${card}`)
 			gs = gs.updateIn([currentplayer(gs)], f => {
 			    return f.updateIn(field, deck => deck.push(card))
 			})
@@ -403,6 +411,16 @@ class Main extends React.Component {
     deckIt(evt) {
 	this.setState({deck_it:evt.currentTarget.value})
     }
+
+    turn() {
+	if(this.state.obs) {
+	    this.state.obs.next(this.state.game_state)
+	    this.state.obs.complete();
+	    this.setState({obs:undefined})
+	}
+	this.props.controller.next()
+
+    }
     
     render() {
 	const title = "Weiss Game Simulator"
@@ -432,8 +450,37 @@ class Main extends React.Component {
 		</button>
 		</div>
 		<div className="mdl-cell--2-col">
-		<button className="mdl-button mdl-js-button">
-		End Phase
+		<button className="mdl-button mdl-js-button" onClick={this.turn.bind(this)} disabled={!this.state.load_mode}>
+		{( _ => {
+		    let phase = this.state.game_state.getIn(['phase'])
+		    if(phase === GamePhases.not_started.id)
+			return "Start Game"
+		    else {
+			switch(phase) {
+			case GamePhases.standup.id:
+			    return "End " + GamePhases.standup.label
+			    
+			case GamePhases.draw.id:
+			    return "End " + GamePhases.draw.label
+			    
+			    
+			case GamePhases.clock.id:
+			    return "End " + GamePhases.clock.label
+			    
+			    
+			case GamePhases.main.id:
+			    return "End " + GamePhases.main.label
+			case GamePhases.climax.id:
+			    return "End " + GamePhases.climax.label
+			default:
+			    return "Unknown Game Phase; Restart"
+			}
+		    }
+		    
+		})()
+		 
+		 
+		}
 		</button>
 		</div>
 		<div className="mdl-cell--2-col">
@@ -479,7 +526,7 @@ class Main extends React.Component {
 		    }
 		})()
 		}
-		
+
 		<StartDialog />		
 		</Body>
 		
