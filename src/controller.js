@@ -3,7 +3,8 @@ import React from 'react'
 import StageSelector from './stageselector'
 const { of, create } = Observable;
 import { isImmutable, List, fromJS } from 'immutable'
-import { shuffle, debug, iscard, currentplayer, findopenpositions, collectactivateablecards, isevent, isclimax, canplay, payment, G, clockDamage, clearactions } from './utils'
+import GamePositions, { currentplayer, inactiveplayer } from './game_pos'
+import { shuffle, debug, iscard, findopenpositions, collectactivateablecards, isevent, isclimax, canplay, payment, G, clockDamage, clearactions } from './utils'
 import { refresh, applyrefreshdamage, searchdeck, drawfromdeck } from './deck_utils'
 import AttackPhase from './attack_phase'
 import GamePhases from './game_phases'
@@ -176,6 +177,10 @@ const ControllerFactory = function(game_state) {
 		////////////// TODO ////////////////////
 	    }
 	    else {
+		let dest = gs.getIn([currentplayer(gs), 'stage', deststage, destpos])
+		if(List.isList(dest) && dest.size > 0) {
+		    gs = gs.updateIn(GamePositions.waiting_room, cards => dest.concat(cards))
+		}
 		gs = gs.updateIn([currentplayer(gs), 'stage', deststage, destpos], cards => {
 		    return cards.insert(0, card)
 		})
@@ -435,7 +440,7 @@ const ControllerFactory = function(game_state) {
 								 ['back','right']]
 						    })()
 						} />,
-					    id:'stage-selector'
+					    id:'stage-select'
 					}
 				    })
 				    
