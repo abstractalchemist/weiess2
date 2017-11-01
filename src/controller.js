@@ -270,6 +270,19 @@ const ControllerFactory = function(game_state) {
 		    })
 	    }
 		break;
+	    case GamePhases.climax.id: {
+		this.attack().subscribe(
+		    gs => {
+			_gs = gs
+		    },
+		    err => {
+			throw err;
+		    },
+		    _ => {
+			_ui.updateUI(_gs)
+		    })
+	    }
+		break;
 	    case GamePhases.not_started.id:
 	    default: {
 		// undefined, so start
@@ -278,7 +291,7 @@ const ControllerFactory = function(game_state) {
 			_gs = gs
 		    },
 		    err => {
-			alert(err)
+			throw err;
 		    },
 		    _ => {
 			console.log(G.climax(_gs))

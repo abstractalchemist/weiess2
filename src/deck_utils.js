@@ -33,7 +33,7 @@ const refresh = function(gs,player) {
 const applyrefreshdamage = function(gs, player) {
     player = player || currentplayer(gs)
     if(gs.getIn(['applyrefreshdamage'])) {
-	let card = G.deck(gs)
+	let card = G.deck(gs).first()
 	return gs.updateIn(['applyrefreshdamage'], _ => false)
 	    .updateIn([player, 'deck'], deck => deck.shift())
 	    .updateIn([player, 'clock'], clock => iscard(card) ? clock.insert(0, card) : clock)

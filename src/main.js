@@ -481,6 +481,8 @@ class Main extends React.Component {
 			    return "End " + GamePhases.main.label
 			case GamePhases.climax.id:
 			    return "End " + GamePhases.climax.label
+			case GamePhases.attack.id:
+			    return "End " + GamePhases.attack.label
 			default:
 			    return "Unknown Game Phase; Restart"
 			}

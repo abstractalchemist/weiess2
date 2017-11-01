@@ -1,5 +1,5 @@
 import { Observable } from 'rxjs'
-import { isclimax, inactiveplayer, currentplayer, G, findcardonstage, findstageposition, iscard, dealdamage, clockDamage } from './utils'
+import { clearactions, hasavailableactions, collectactivateablecards, isclimax, inactiveplayer, currentplayer, G, findcardonstage, findstageposition, iscard, dealdamage, clockDamage } from './utils'
 import { refresh, applyrefreshdamage, searchwaitingroom } from './deck_utils'
 import StageSelector from './stageselector'
 //import DeckSelector from './deckselector'
@@ -40,12 +40,12 @@ const AttackPhase = function(gs, ui) {
 	return oppos
     }
 
-    const applyattackoption = (pos, gs) => {
-	if(isstanding(pos)) {
+    const applyattackoption = (pos1, gs) => {
+	if(isstanding(pos1)) {
 	    gs = gs.updateIn([currentplayer(gs), 'stage'], stage => {
-		return stage.updateIn(center_left, pos => {
+		return stage.updateIn(pos1, pos => {
  		    return pos.update(0, card => {
-			let oppos = findoppos(pos)
+			let oppos = findoppos(pos1)
 			let actions = undefined
 			if(iscard(G.stage(gs, inactiveplayer(gs)).getIn(oppos).first())) {
 			    actions = [
@@ -53,7 +53,7 @@ const AttackPhase = function(gs, ui) {
 				    exec() {
 					_attacking_card = card
 					_attack_type = 'front'
-					_pos = pos;
+					_pos = pos1;
 					return of(gs)
 				    },
 				    desc:"Front"
@@ -62,25 +62,34 @@ const AttackPhase = function(gs, ui) {
 				    exec() {
 					_attacking_card = card
 					_attack_type = 'side'
-					_pos = pos;
+					_pos = pos1;
 					return of(gs)
 				    },
 				    desc:"Side" 
 				}
 			    ]
 			}
-			else
+			else {
 			    actions = [
 				{
 				    exec() {
 					_attacking_card = card
 					_attack_type = 'direct'
-					_pos = pos;
+					_pos = pos1;
 					return of(gs)
 				    },
 				    desc:"Direct"
 				}
 			    ]
+			}
+			actions.push({
+			    exec() {
+				
+				return of(gs)
+			    },
+			    desc: "pass"
+			})
+			
 			return card.updateIn(['actions'], _ => fromJS(actions))
 			
 		    })
@@ -134,7 +143,28 @@ const AttackPhase = function(gs, ui) {
 	gs = applyattackoption(center_right,gs)
 	return gs
 	
-    }   
+    }
+
+        
+    // update ui with the given event
+    // evt - the event that occurred
+    // func - a function to be executed by any activated action; or force the stream to continue
+    const updateUI= (evt, ignoreprompt, func) => {
+	return gs1 => {
+
+	    let f = func || (o => (gs => {
+		o.next(gs)
+		o.complete()
+	    }))
+	    console.log(`in update, hasavailableactions ${hasavailableactions(gs1)}`)
+	    
+	    return create(obs => {
+		console.log(`in update, hasavailableactions ${hasavailableactions(gs1)}`)
+		_ui.updateUI(gs1, obs, evt, ignoreprompt)
+	    })
+	}
+    }
+
     
     return {
 	setpos(pos) {
@@ -146,20 +176,21 @@ const AttackPhase = function(gs, ui) {
 	    return of(gs)
 
 	    // select to card to attack with attack
-		.mergeMap(ui.updateUI({evt:"attack_declare"}))
+		.mergeMap(updateUI({evt:"attack_declare"}, true))
 		.mergeMap(this.declare.bind(this))
-		.mergeMap(ui.updateUI({evt:"attack_select"}))
+		.mergeMap(updateUI({evt:"attack_select"}, true))
+		.map(clearactions)
 		.mergeMap(gs => {
 		    let attacking_card = _attacking_card
 		    if(attacking_card) {
 			return of(gs)
-			    .mergeMap(ui.updateUI({evt:"attack_trigger"}))
+			    .mergeMap(updateUI({evt:"attack_trigger"}, true))
 			    .mergeMap(gs => this.trigger(gs, _attacking_card))
 			    .map(applyrefreshdamage)
 			    .mergeMap(clockDamage(ui))
-			    .mergeMap(ui.updateUI({evt:"attack_counter"}))
+			    .mergeMap(updateUI({evt:"attack_counter"}, true))
 			    .mergeMap(gs  => this.counter_attack(gs, _attacking_card))
-			    .mergeMap(ui.updateUI({evt:"attack_damage"}))
+			    .mergeMap(updateUI({evt:"attack_damage"}, true))
 			    .mergeMap(gs => this.damage(gs, _attacking_card))
 			    .map(applyrefreshdamage)
 			    .mergeMap(clockDamage(ui))
@@ -168,9 +199,9 @@ const AttackPhase = function(gs, ui) {
 				if(_attack_type === 'direct')
 				    return of(gs)
 				return of(gs)
-				    .mergeMap(ui.updateUI({evt:"attack_battle"}))
+				    .mergeMap(updateUI({evt:"attack_battle"}, true))
 				    .mergeMap(gs => this.battle_step(gs, _attacking_card))
-				    .mergeMap(ui.updateUI({evt:"attack_encore"}))
+				    .mergeMap(updateUI({evt:"attack_encore"}, true))
 				    .mergeMap(gs => this.encore(gs, _attacking_card))
 			    })
 			
@@ -298,9 +329,9 @@ const AttackPhase = function(gs, ui) {
 		soulcount = soul(gs)
 	    if(_attack_type === 'direct')
 		soulcount ++;
-	    gs = dealdamage(soulcount, gs)
+	    gs = dealdamage(soulcount, gs, inactiveplayer(gs))
 	    if(gs.getIn(['trigger']) === 'shot')
-		gs = dealdamage(soulcount, gs, false)
+		gs = dealdamage(soulcount, gs, inactiveplayer(gs), false)
 	    return of(gs);
 	    
 	},

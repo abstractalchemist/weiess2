@@ -270,10 +270,12 @@ const findcardonstage = function(gs, card) {
     return [undefined, []]
 }
 
-const dealdamage = function(count, gs, cancelable = true) {
+const dealdamage = function(count, gs, player, cancelable = true) {
+    player = player || currentplayer(gs)
     let canceled = false;
     let i = 0;
     let damage =[];
+    let deck = G.deck(gs)
     while(i++ < count && !canceled) {
 	let dmg = deck.first();
 	deck = deck.shift()
