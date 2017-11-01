@@ -4,7 +4,7 @@ import StageSelector from './stageselector'
 const { of, create } = Observable;
 import { isImmutable, List, fromJS } from 'immutable'
 import GamePositions, { currentplayer, inactiveplayer } from './game_pos'
-import { shuffle, debug, iscard, findopenpositions, collectactivateablecards, isevent, isclimax, canplay, payment, G, clockDamage, clearactions } from './utils'
+import { shuffle, debug, iscard, findopenpositions, collectactivateablecards, isevent, isclimax, canplay, payment, G, clockDamage, clearactions, hasavailableactions } from './utils'
 import { refresh, applyrefreshdamage, searchdeck, drawfromdeck } from './deck_utils'
 import AttackPhase from './attack_phase'
 import GamePhases from './game_phases'
@@ -141,7 +141,7 @@ const ControllerFactory = function(game_state) {
     // update ui with the given event
     // evt - the event that occurred
     // func - a function to be executed by any activated action; or force the stream to continue
-    const updateUI= (evt, func) => {
+    const updateUI= (evt, ignoreprompt, func) => {
 	return gs => {
 	    let f = func || (o => (gs => {
 		o.next(gs)
@@ -149,7 +149,7 @@ const ControllerFactory = function(game_state) {
 	    }))
 	    
 	    return create(obs => {
-		_ui.updateUI(applyActions(gs,evt,f(obs)), obs, evt)
+		_ui.updateUI(applyActions(gs,evt,f(obs)), obs, evt, ignoreprompt)
 	    })
 	}
     }
@@ -257,6 +257,19 @@ const ControllerFactory = function(game_state) {
 		    })
 	    }
 		break;
+	    case GamePhases.main.id : {
+		this.climax().subscribe(
+		    gs => {
+			_gs = gs
+		    },
+		    err => {
+			alert(err)
+		    },
+		    _ => {
+			_ui.updateUI(_gs)
+		    })
+	    }
+		break;
 	    case GamePhases.not_started.id:
 	    default: {
 		// undefined, so start
@@ -265,8 +278,10 @@ const ControllerFactory = function(game_state) {
 			_gs = gs
 		    },
 		    err => {
+			alert(err)
 		    },
 		    _ => {
+			console.log(G.climax(_gs))
 			_ui.updateUI(_gs)
 		    })
 	    }
@@ -336,7 +351,7 @@ const ControllerFactory = function(game_state) {
 	    }
 	    return of(GamePhases.clock.set(_gs))
 		.map(clearactions)
-	    	.mergeMap(updateUI(GamePhases.clock.start()))
+	    	.mergeMap(updateUI(GamePhases.clock.start(), true))
 		.map(clock)
 	    	.mergeMap(updateUI({ evt: "clock" }))
 		.map(gs => {
@@ -360,12 +375,13 @@ const ControllerFactory = function(game_state) {
 	// this is called recursively for after each main turn
 	main() {
 
-	    
+	    console.log('running main')
 	    let moveCardActions = (srcstage, srcpos) => {
 		return gs => {
 //		    console.log(`adding move phase to ${srcstage} => ${srcpos} with gs ${gs}`)
 		    return gs.updateIn([currentplayer(gs), 'stage', srcstage, srcpos], cards => cards.update(0, card => {
-			if(iscard(card))
+			if(iscard(card)) {
+			    console.log(`adding move to ${card.getIn(['info','id'])}`)
 			    return card.updateIn(['actions'], _ => fromJS([
 				{
 				    exec() {
@@ -388,12 +404,17 @@ const ControllerFactory = function(game_state) {
 							    return of(gs
 								      .setIn([currentplayer(gs), 'stage', deststage, destpos], cardpos)
 								      .setIn([currentplayer(gs), 'stage', srcstage, srcpos], List()))
-							    //  .mergeMap(updateUI({ evt: "move", id:cardpos.first().getIn(['info','id']) }))
+								.mergeMap(updateUI({ evt: "move", id:cardpos.first().getIn(['info','id']) }), true)
 								.subscribe(
 								    gs => {
 									obs(gs)
+								    },
+								    err => {
+									alert(err)
+								    },
+								    _ => {
 								    })
-							    
+
 							}
 						    } openpositions={[['center','left'],
 								      ['center','middle'],
@@ -407,6 +428,7 @@ const ControllerFactory = function(game_state) {
 				    desc: "Move"
 				}
 			    ]))
+			}
 			return card
 		    }))
 		}
@@ -424,10 +446,18 @@ const ControllerFactory = function(game_state) {
 						<StageSelector onselect={
 						    ([deststage, destpos]) => {
 							return of(playcard(gs, h, deststage, destpos))
-							    .mergeMap(updateUI({ evt: "play", id:h.getIn(['info','id']) }))
-							    .subscribe(gs => {
-								obs(gs)
-							    })
+							    .map(clearactions)
+							    .do(_ => _ui.prompt(undefined))
+							    .mergeMap(updateUI({ evt: "play", id:h.getIn(['info','id']) }, true))
+							    .subscribe(
+								gs => {
+								    obs(gs)
+								},
+								err => {
+								    alert(err)
+								},
+								_ => {
+								})
 						    }
 						} openpositions={
 						    (_ => {
@@ -454,8 +484,10 @@ const ControllerFactory = function(game_state) {
 	    }
 
 	    return of(GamePhases.main.set(_gs))
+
 		.map(clearactions)
-		.mergeMap(updateUI(GamePhases.main.start()))
+	    	.do(_ => console.log('setting main'))
+		.mergeMap(updateUI(GamePhases.main.start(), true))
 		.map(moveCardActions('center','left'))
 	    	.map(moveCardActions('center','middle'))
 	    	.map(moveCardActions('center','right'))
@@ -504,7 +536,7 @@ const ControllerFactory = function(game_state) {
 	    }
 	    return of(GamePhases.climax.set(_gs))
 		.map(clearactions)
-		.mergeMap(updateUI(GamePhases.climax.start()))
+		.mergeMap(updateUI(GamePhases.climax.start(), true))
 		.map(selectclimax)
 		.mergeMap(updateUI({evt:"climax"}))
 	    

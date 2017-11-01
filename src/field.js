@@ -43,7 +43,7 @@ function Card({ui,gs,obs,card}) {
 					    })
 				    }
 				}>{action.desc}</button>)
-			    
+			
 		    })
 		}
 	    })()}
@@ -88,6 +88,24 @@ function StageCard({ui,obs,gs,cards}) {
 	    </div>
 	    <div className="mdl-card__actions">
 	    {( _ => {
+		if(card.actions) {
+		    return card.actions.map(action => {
+			return (<button className="mdl-button mdl-js-button"
+				onClick={
+				    _ => {
+					action.exec().subscribe(
+					    gs => {
+						obs.next(gs)
+						obs.complete()
+					    })
+				    }
+				}>{action.desc}</button>)
+			
+		    })
+		}
+	    })()}
+
+	    {( _ => {
 		if(card.cardactions && card.cardactions.length) {
 		    return card.cardactions.map(({exec, desc, shortdesc}) => {
 			return (<button className="mdl-button mdl-js-button"
@@ -98,7 +116,7 @@ function StageCard({ui,obs,gs,cards}) {
 						obs.next(gs)
 						obs.complete()
 					    })
-					    
+					
 				    }
 				}>
 				{shortdesc}
@@ -215,7 +233,7 @@ function CardSlot({id, children}) {
 function fieldReverse({game_state,obs}, controller) {
     
     let gs = game_state.getIn([inactiveplayer(game_state)]).toJS();
-//    console.log(gs)
+    //    console.log(gs)
     let center= [ <SpacerSlot key='spacer-1' id='spacer-1' width={2} />,  // spacer
 		  <SpacerSlot key='spacer-2' id='spacer-2' width={2} />,  // spacer		  
 		  <CardSlot id='left-center-player2' key='left-center-player2'>
@@ -236,7 +254,7 @@ function fieldReverse({game_state,obs}, controller) {
 		  </CardSlot>]  // memory
 	
     let back = [ <CardSlot id='climax-player2' key='climax-player2' >
-		 <Card />
+		 <Card card={gs.climax[0]}/>
 		 </CardSlot>, // climax
 		 
 		 <SpacerSlot key='spacer-3' id='spacer-3' width={3} />, //spacer
@@ -283,7 +301,7 @@ function fieldReverse({game_state,obs}, controller) {
 
 function field({game_state,obs}, controller) {
     let gs = game_state.getIn([currentplayer(game_state)]).toJS();
-//    console.log(gs.waiting_room)
+    //    console.log(gs.waiting_room)
     let center= [ <SpacerSlot key='spacer-6' id='spacer-6' width={2} />,  // spacer
 		  <CardSlot id='left-center-player1' key='left-center-player1' >
 		  <StageCard ui={controller} obs={obs} cards={gs.stage.center.left}/>
@@ -304,7 +322,7 @@ function field({game_state,obs}, controller) {
 		  </CardSlot>]  // memory
 	
     let back = [ <CardSlot id='climax-player1' key='climax-player1' >
-		 <Card />
+		 <Card card={gs.climax[0]}/>
 		 </CardSlot>, // climax
 		 
 		 <SpacerSlot key='spacer-8' id='spacer-8' width={1} />, //spacer

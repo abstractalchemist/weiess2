@@ -32,18 +32,22 @@ class Main extends React.Component {
 
 	
     }
-    
-    updateUI(gs, obs, evt) {
+
+    // ignoreprompts is a hack which calling implies ignoring the promt
+    updateUI(gs, obs, evt, ignoreprompts) {
 	
 	this.setState({game_state:gs, obs, evt})
 	if(obs) {
 	    console.log(`observing ${evt.evt}`)
-	    
-	    if(!hasavailableactions(gs) && !this.state.prompt) {
+	    let a, b;
+	    if(!(a = hasavailableactions(gs)) && (ignoreprompts || !(b = this.state.prompt))) {
 		console.log(`no available actions, leaving`)
 		obs.next(gs)
 		obs.complete()
 //		setTimeout(this.turn.bind(this), 2000)
+	    }
+	    else {
+		console.log(`actions? ${a}, prompts ${b}`)
 	    }
 	}
 	else {
@@ -52,14 +56,18 @@ class Main extends React.Component {
     }
 
     prompt(promptfunc) {
-	return create(obs => {
-	    let { id, prompt } = promptfunc(gs => {
-		obs.next(gs)
-		obs.complete()
+	if(promptfunc) {
+	    return create(obs => {
+		let { id, prompt } = promptfunc(gs => {
+		    obs.next(gs)
+		    obs.complete()
+		})
+		
+		this.setState({prompt:{id,prompt}})
 	    })
-	    
-	    this.setState({prompt:{id,prompt}})
-	})
+	}
+	else
+	    this.setState({prompt:undefined})
     }
     
     componentDidMount() {
@@ -293,6 +301,7 @@ class Main extends React.Component {
 				    {label:'Back Left', id:'stage-back-left'},
 				    {label:'Back Right', id:'stage-back-right'},
 				    {label:'Deck', id:'deck'},
+				    {label:'Level', id:'level'},
 				    {label:'Waiting Room', id:'waiting_room'}].map(o => {
 					return (<tr id={o.id}>
 						<td>{o.label}</td>
@@ -331,7 +340,7 @@ class Main extends React.Component {
 		let field = selected_field.split('-')
 		this.props.controller.updategamestate(this.state.game_state.updateIn([currentplayer(this.state.game_state)], f => {
 		    return f.updateIn(field, loc => {
-			return loc.push(fromJS(card))
+			return loc.unshift(fromJS(card))
 		    })
 		}))
 	    })
@@ -354,7 +363,7 @@ class Main extends React.Component {
 		    <TextField label="Deck Count" id="deck-count" value={this.state.deck_it} changehandler={this.deckIt.bind(this)}/>,
 		    <button className="mdl-button mdl-js-button mdl-button--raised" onClick={this.deckItNow.bind(this)}>
 		    Fill Deck
-		</button>,
+		</button>
 
 	    ]
 	}

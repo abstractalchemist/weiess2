@@ -121,7 +121,7 @@ const isevent = function(card) {
 
 // climax cards have no level and no power
 const isclimax = function(card) {
-    return iscard(card) && card.getIn(['info','power']) === undefined && card.getIn(['active','level']) === undefined;
+    return iscard(card) && (card.getIn(['info','power']) === undefined || card.getIn(['info','power']) === 0) && (card.getIn(['active','level']) === undefined || card.getIn(['active','level']) === 0)
 }
 
 const clockDamage = (ui, player) => {
@@ -173,8 +173,13 @@ const payment = function(cost) {
 }
 
 const canplay = function(gs, h) {
+
+    let level = h.getIn(['active','level'])
+    if(typeof level === 'function')
+	level = level(gs)
+    
     // can play if level 0
-    return h.getIn(['active','level']) === 0 ||
+    return level === 0 ||
 
     // have the stock
     ( h.getIn(['info', 'cost']) <= G.stock(gs).size &&
@@ -184,33 +189,33 @@ const canplay = function(gs, h) {
 	G.clock(gs).map(c => c.getIn(['info','color'])).includes( h.getIn(['info', 'color']) ) ) &&
 
       // and current level ( this is a function since continous abilites are typically a function of game_state )
-      G.level(gs).size >= h.getIn(['active','level'])(gs) )
+      G.level(gs).size >= level )
 }
 
 const clearactions = function(gs) {
     return gs
 	.updateIn(GamePositions.stage_cl(gs), s => {
-	    if(iscard(s.first))
+	    if(iscard(s.first()))
 		return s.update(0, c => c.updateIn(['actions'], _ => List()))
 	    return s
 	})
 	.updateIn(GamePositions.stage_cm(gs), s => {
-	    if(iscard(s.first))
+	    if(iscard(s.first()))
 		return s.update(0, c => c.updateIn(['actions'], _ => List()))
 	    return s
 	})
 	.updateIn(GamePositions.stage_cr(gs), s => {
-	    if(iscard(s.first))
+	    if(iscard(s.first()))
 		return s.update(0, c => c.updateIn(['actions'], _ => List()))
 	    return s
 	})
 	.updateIn(GamePositions.stage_bl(gs), s => {
-	    if(iscard(s.first))
+	    if(iscard(s.first()))
 		return s.update(0, c => c.updateIn(['actions'], _ => List()))
 	    return s
 	})
 	.updateIn(GamePositions.stage_br(gs), s => {
-	    if(iscard(s.first))
+	    if(iscard(s.first()))
 		return s.update(0, c => c.updateIn(['actions'], _ => List()))
 	    return s
 	})
@@ -292,15 +297,31 @@ const hasavailableactions = function(gs, field) {
     //    console.log(`checking ${field}`)
     let hasactions = false;
     if(!field) {
+	
 	collectactivateablecards(gs).forEach(T => {
 	    if(!hasactions) {
 		//	    console.log(T)
 		if(iscard(T)) {
-		    hasactions = (T.getIn(['actions']) && T.getIn(['actions']).size > 0) || (T.getIn(['cardactions']) && T.getIn(['cardactions']).size > 0)
+		    let a, b;
+		    hasactions = (a = List.isList(T.getIn(['actions'])) && T.getIn(['actions']).size > 0) || (b = List.isList(T.getIn(['cardactions'])) && T.getIn(['cardactions']).size > 0)
+ 		    // if(hasactions) {
+		    // 	console.log(`${T.getIn(['info','name'])} has actions ${a} and cardactions ${b}`)
+		    // 	if(a) {
+		    // 	    console.log(T.getIn(['actions']))
+		    // 	}
+			
+		    // }
 		}
 		else if(List.isList(T) && iscard(T.first())) {
+		    let a,b
 		    T = T.first()
-		    hasactions = (T.getIn(['actions']) && T.getIn(['actions']).size > 0) || (T.getIn(['cardactions']) && T.getIn(['cardactions']).size > 0)
+		    hasactions = (a = List.isList(T.getIn(['actions'])) && T.getIn(['actions']).size > 0) || (b = List.isList(T.getIn(['cardactions'])) && T.getIn(['cardactions']).size > 0)
+		    // if(hasactions) {
+		    // 	console.log(`${T.getIn(['info','name'])} has actions ${a} and cardactions ${b}`)
+		    // 	if(a) {
+		    // 	    console.log(T.getIn(['actions']))
+		    // 	}
+		    // }
 		}
 	    }
 	})
