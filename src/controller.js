@@ -4,7 +4,7 @@ import StageSelector from './stageselector'
 const { of, create } = Observable;
 import { isImmutable, List, fromJS } from 'immutable'
 import GamePositions, { currentplayer, inactiveplayer } from './game_pos'
-import { shuffle, debug, iscard, findopenpositions, collectactivateablecards, isevent, isclimax, canplay, payment, G, clockDamage, clearactions, hasavailableactions } from './utils'
+import { reset, shuffle, debug, iscard, findopenpositions, collectactivateablecards, isevent, isclimax, canplay, payment, G, clockDamage, clearactions, hasavailableactions } from './utils'
 import { refresh, applyrefreshdamage, searchdeck, drawfromdeck } from './deck_utils'
 import AttackPhase from './attack_phase'
 import GamePhases from './game_phases'
@@ -279,7 +279,7 @@ const ControllerFactory = function(game_state) {
 			throw err;
 		    },
 		    _ => {
-			_ui.updateUI(_gs)
+			_ui.updateUI(reset(_gs.updateIn(['turn'], turn => turn + 1)))
 		    })
 	    }
 		break;

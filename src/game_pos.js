@@ -4,7 +4,7 @@ function currentplayer(gs) {
 
     if(gs.getIn(['turn']) === undefined)
 	throw "invalid turn defined"
-    return `player${gs.getIn(['turn']) % 2 + 1}`
+    return `player${gs.getIn(['turn']) % 1 + 1}`
 }
 
 function inactiveplayer(gs) {
@@ -13,7 +13,7 @@ function inactiveplayer(gs) {
 
     if(gs.getIn(['turn']) === undefined)
 	throw "invalid turn defined"
-    return `player${gs.getIn(['turn'])  % 2 + 2}`
+    return `player${gs.getIn(['turn'])  % 1 + 2}`
 
 }
 

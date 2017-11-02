@@ -297,7 +297,7 @@ class Main extends React.Component {
 			    return [{label:'Hand',id:'hand'},
 				    {label:'Center Left', id:'stage-center-left'},
 				    {label:'Center Middle', id:'stage-center-middle'},
-				    {label:'Center Right', id:'stage center-right'},
+				    {label:'Center Right', id:'stage-center-right'},
 				    {label:'Back Left', id:'stage-back-left'},
 				    {label:'Back Right', id:'stage-back-right'},
 				    {label:'Deck', id:'deck'},
@@ -465,7 +465,7 @@ class Main extends React.Component {
 		<label className="mdl-checkbox mdl-js-checkbox mdl-js-ripple-effect" htmlFor="checkbox-1">
 		<input type="checkbox" id="checkbox-1" className="mdl-checkbox__input" value={this.state.show_inacive_hand} onChange={
 		    evt => {
-			this.setState({ show_inactive_hand: evt.currentTarget.value })
+			this.setState({ show_inactive_hand: evt.currentTarget.checked })
 		    }
 		}></input>
 		<span className="mdl-checkbox__label">Show Inactive Player Hand</span>

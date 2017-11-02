@@ -15,8 +15,8 @@ const AttackPhase = function(gs, ui) {
     let _gs = gs;
 
     // check whether the card in the pos is standing
-    const isstanding = (pos, player)  => {
-	player = player || currentplayer(_gs)
+    const isstanding = (pos, gs, player)  => {
+	player = player || currentplayer(gs)
 	let stage = G.stage(gs, player)
 	let c = undefined;
 	return iscard( c= stage.getIn(pos).first()) && c.getIn(['status']) === 'stand'
@@ -41,29 +41,34 @@ const AttackPhase = function(gs, ui) {
     }
 
     const applyattackoption = (pos1, gs) => {
-	if(isstanding(pos1)) {
+	if(isstanding(pos1, gs)) {
 	    gs = gs.updateIn([currentplayer(gs), 'stage'], stage => {
 		return stage.updateIn(pos1, pos => {
  		    return pos.update(0, card => {
 			let oppos = findoppos(pos1)
-			let actions = undefined
-			if(iscard(G.stage(gs, inactiveplayer(gs)).getIn(oppos).first())) {
+			let actions ;
+			let c;
+			if(iscard(c = G.stage(gs, inactiveplayer(gs)).getIn(oppos).first())) {
+			    
 			    actions = [
 				{
 				    exec() {
-					_attacking_card = card
+					_attacking_card = card.updateIn(['status'], _ => 'resting')
 					_attack_type = 'front'
 					_pos = pos1;
-					return of(gs)
+					return of(gs.updateIn([currentplayer(gs), 'stage'].concat(pos1), cards => cards.update(0, _ => _attacking_card)))
+					
+					
 				    },
 				    desc:"Front"
 				},
 				{
 				    exec() {
-					_attacking_card = card
+					_attacking_card = card.updateIn(['status'], _ => 'resting')
 					_attack_type = 'side'
 					_pos = pos1;
-					return of(gs)
+					return of(gs.updateIn([currentplayer(gs), 'stage'].concat(pos1), cards => cards.update(0, _ => _attacking_card)))
+
 				    },
 				    desc:"Side" 
 				}
@@ -73,10 +78,10 @@ const AttackPhase = function(gs, ui) {
 			    actions = [
 				{
 				    exec() {
-					_attacking_card = card
+					_attacking_card = card.updateIn(['status'], _ => 'resting')
 					_attack_type = 'direct'
 					_pos = pos1;
-					return of(gs)
+					return of(gs.updateIn([currentplayer(gs), 'stage'].concat(pos1), cards => cards.update(0, _ => _attacking_card)))
 				    },
 				    desc:"Direct"
 				}
@@ -89,21 +94,23 @@ const AttackPhase = function(gs, ui) {
 			    },
 			    desc: "pass"
 			})
-			
+		    
 			return card.updateIn(['actions'], _ => fromJS(actions))
-			
 		    })
+		    
 		})
+				     
 	    })
-
-	    // here is where things like 'disallow side attacks' should be implemented
-	    collectactivateablecards(gs).forEach( T => {
-		let f = undefined;
-		if(f = T.getIn(['passiveactions'])) {
-		    gs = f(gs,evt)
-		}
-	    })
+	    
 	}
+	// here is where things like 'disallow side attacks' should be implemented
+	collectactivateablecards(gs).forEach( T => {
+	    let f = undefined;
+	    if(f = T.getIn(['passiveactions'])) {
+		gs = f(gs,evt)
+	    }
+	})
+	
 	return gs;
 
     }
@@ -145,7 +152,7 @@ const AttackPhase = function(gs, ui) {
 	
     }
 
-        
+    
     // update ui with the given event
     // evt - the event that occurred
     // func - a function to be executed by any activated action; or force the stream to continue
@@ -173,7 +180,7 @@ const AttackPhase = function(gs, ui) {
 
 	// runs through each phase
 	resolve() {
-	    return of(gs)
+	    return of(_gs)
 
 	    // select to card to attack with attack
 		.mergeMap(updateUI({evt:"attack_declare"}, true))
@@ -201,15 +208,35 @@ const AttackPhase = function(gs, ui) {
 				return of(gs)
 				    .mergeMap(updateUI({evt:"attack_battle"}, true))
 				    .mergeMap(gs => this.battle_step(gs, _attacking_card))
-				    .mergeMap(updateUI({evt:"attack_encore"}, true))
-				    .mergeMap(gs => this.encore(gs, _attacking_card))
 			    })
 			
 			
 		    }
 		    return of(gs)
 		})
-
+ 		.mergeMap(gs => {
+		    
+		    // true if there is no card, or the card is actually resting
+		    const is_stage_resting = stack => {
+			let c;
+			if(List.isList(stack) && stack.size > 0 && iscard(c = stack.first())) {
+			    return c.getIn(['status']) !== 'stand'
+			}
+			return true
+		    }
+		    
+		    let stage_cl = gs.getIn([currentplayer(gs), 'stage', 'center','left'])
+		    let stage_cm = gs.getIn([currentplayer(gs), 'stage', 'center','middle'])
+		    let stage_cr = gs.getIn([currentplayer(gs), 'stage', 'center','right'])
+		    _gs = gs
+		    if(!(is_stage_resting(stage_cl) && is_stage_resting(stage_cm) && is_stage_resting(stage_cr))) {
+			
+			return this.resolve()
+		    }
+		    return of(_gs)
+		})
+		.mergeMap(updateUI({evt:"attack_encore"}, true))
+		.mergeMap(gs => this.encore(gs, _attacking_card))
 	    
 	},
 	
@@ -443,7 +470,7 @@ const AttackPhase = function(gs, ui) {
 			return ui.updateUI(gs, obs, evt)
 		    })
 		}
-				 
+		
 	    }
 
 	    const checkisreversed = (gs, player, pos) => {
@@ -482,7 +509,7 @@ const AttackPhase = function(gs, ui) {
 		.mergeMap(updateUI({evt:'encore'}))
 		.mergeMap(hasreversed)
 	    
-			  
+	    
 	    
 	}
     }

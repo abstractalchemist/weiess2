@@ -343,4 +343,40 @@ const hasavailableactions = function(gs, field) {
     return hasactions;
 }
 
-export { debug, iscard, findopenpositions, currentplayer, collectactivateablecards, inactiveplayer, isevent, isclimax, canplay, payment, findcardonstage, findstageposition, G, dealdamage, clockDamage, hasavailableactions, clearactions }
+
+const resetcard = (card) => {
+    if(List.isList(card)) {
+	return card.map(resetcard)
+    }
+    else if(iscard(card)) {
+	
+	let info = card.getIn(['info'])
+	return card
+	    .updateIn(['active'], active => {
+		return active.setIn(['power'], info.getIn(['power']))
+		    .setIn(['soul'], info.getIn(['soul']))
+		    .setIn(['level'], info.getIn(['level']))
+	    })
+	    .updateIn(['actions'], _ => List())
+	    .updateIn(['cardactions'], _ => List())
+    }
+    return card;
+}
+
+const resetplayer = (gs, player) => {
+    return gs
+	.updateIn([player, 'stage', 'center', 'left'], resetcard)
+    	.updateIn([player, 'stage', 'center', 'middle'], resetcard)
+    	.updateIn([player, 'stage', 'center', 'right'], resetcard)
+    	.updateIn([player, 'stage', 'back', 'left'], resetcard)
+    	.updateIn([player, 'stage', 'back', 'right'], resetcard)
+}
+
+// reset all cards
+function reset(gs) {
+    gs =  resetplayer(gs, currentplayer(gs))
+    gs = resetplayer(gs, inactiveplayer(gs))
+    return gs;
+}
+
+export { debug, iscard, findopenpositions, currentplayer, collectactivateablecards, inactiveplayer, isevent, isclimax, canplay, payment, findcardonstage, findstageposition, G, dealdamage, clockDamage, hasavailableactions, clearactions, reset }
