@@ -44,7 +44,7 @@ class Main extends React.Component {
 		console.log(`no available actions, leaving`)
 		obs.next(gs)
 		obs.complete()
-//		setTimeout(this.turn.bind(this), 2000)
+		//		setTimeout(this.turn.bind(this), 2000)
 	    }
 	    else {
 		console.log(`actions? ${a}, prompts ${b}`)
@@ -356,6 +356,7 @@ class Main extends React.Component {
 	    cardset_coll:this.state.cardset_coll,
 	    addhandler2:(this.state.load_mode === 'place_cards' ? this.addFromSetToField.bind(this) : undefined),
 	    addFilterOptions:[
+		    <div style={{width:"100%"}}/>,
 		    <TextField label="Stock Count" id="stock-count" value={this.state.stock_it} changehandler={this.stockIt.bind(this)}/>,
 		    <button className="mdl-button mdl-js-button mdl-button--raised" onClick={this.stockItNow.bind(this)}>
 		    Fill Stock
@@ -439,7 +440,7 @@ class Main extends React.Component {
 		<Body>
 
 
-		<section className="mdl-layout__tab-panel is-active" id="fixed-tab-2">
+		<section className="mdl-layout__tab-panel" id="fixed-tab-2">
 		<div className="page-content">
 
 		<div className="mdl-grid">
@@ -457,8 +458,33 @@ class Main extends React.Component {
 		<button className="mdl-button mdl-js-button" onClick={this.loadScenario.bind(this)}>
 		Load Scenario
 		</button>
+ 		</div> 
+ 		<div className="mdl-cell--2-col">
 		</div>
 		<div className="mdl-cell--2-col">
+		<label className="mdl-checkbox mdl-js-checkbox mdl-js-ripple-effect" htmlFor="checkbox-1">
+		<input type="checkbox" id="checkbox-1" className="mdl-checkbox__input" value={this.state.show_inacive_hand} onChange={
+		    evt => {
+			this.setState({ show_inactive_hand: evt.currentTarget.value })
+		    }
+		}></input>
+		<span className="mdl-checkbox__label">Show Inactive Player Hand</span>
+		</label>
+		</div>
+		<div className="mdl-cell--2-col">
+		</div>
+		{( _ => {
+		    if(this.state.show_inactive_hand) {
+			let cardsinhand = this.state.game_state.getIn([inactiveplayer(this.state.game_state), 'hand']);
+			let space = 12 - ((2*cardsinhand.size) % 12);
+			
+			return hand({game_state:this.state.game_state, player:inactiveplayer(this.state.game_state)}, this).concat([<div className={"mdl-cell mdl-cell--" + space + "-col"}/>,<div className={"mdl-cell mdl-cell--12-col spacer"} />]);
+			
+		    }
+		})()}
+		{fieldReverse(this.state, this)}
+
+		<div className="mdl-cell mdl-cell--12-col spacer">
 		<button className="mdl-button mdl-js-button" onClick={this.turn.bind(this)} disabled={!this.state.load_mode}>
 		{( _ => {
 		    let phase = this.state.game_state.getIn(['phase'])
@@ -493,40 +519,19 @@ class Main extends React.Component {
 		 
 		}
 		</button>
-		</div>
-		<div className="mdl-cell--2-col">
-		<label className="mdl-checkbox mdl-js-checkbox mdl-js-ripple-effect" htmlFor="checkbox-1">
-		<input type="checkbox" id="checkbox-1" className="mdl-checkbox__input" value={this.state.show_inacive_hand} onChange={
-		    evt => {
-			this.setState({ show_inactive_hand: evt.currentTarget.value })
-		    }
-		}></input>
-		<span className="mdl-checkbox__label">Show Inactive Player Hand</span>
-		</label>
-		</div>
-		<div className="mdl-cell--2-col">
-		</div>
-		{( _ => {
-		    if(this.state.show_inactive_hand) {
-			let cardsinhand = this.state.game_state.getIn([inactiveplayer(this.state.game_state), 'hand']);
-			let space = 12 - ((2*cardsinhand.size) % 12);
-			
-			return hand({game_state:this.state.game_state, player:inactiveplayer(this.state.game_state)}, this).concat([<div className={"mdl-cell mdl-cell--" + space + "-col"}/>,<div className={"mdl-cell mdl-cell--12-col spacer"} />]);
-			
-		    }
-		})()}
-		{fieldReverse(this.state, this)}
 
-		<div className="mdl-cell mdl-cell--12-col spacer"/>
+		</div>
 		{field(this.state, this)}
-		<div className="mdl-cell mdl-cell--12-col spacer"/>
+		<div className="mdl-cell mdl-cell--12-col spacer">
+
+		</div>
 		{hand(this.state, this)}
 		</div>
 
 		</div>
 		</section>
 
-		<section className="mdl-layout__tab-panel is-active" id="fixed-tab-1">
+		<section className="mdl-layout__tab-panel" id="fixed-tab-1">
 		<div className="page-content">
 		{buildCardSet(this.buildSetObj())}
 		</div>

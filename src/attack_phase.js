@@ -227,7 +227,7 @@ const AttackPhase = function(gs, ui) {
 		let trigger_action = trigger_card.getIn(['info', 'trigger_action'])
 		switch(trigger_action) {
 		case "soul +1": {
-		    attacking_card = attack_card.updateIn(['active', 'soul'], soul => {
+		    attacking_card = attacking_card.updateIn(['active', 'soul'], soul => {
 			return gs => {
 			    if(typeof soul === 'function')
 				return 1 + soul(gs)
@@ -237,7 +237,7 @@ const AttackPhase = function(gs, ui) {
 		}
 		    break;
 		case "soul +2":{
-		    attacking_card = attack_card.updateIn(['active', 'soul'], soul => {
+		    attacking_card = attacking_card.updateIn(['active', 'soul'], soul => {
 			return gs => {
 			    if(typeof soul === 'function')
 				return 2 + soul(gs)
@@ -340,7 +340,7 @@ const AttackPhase = function(gs, ui) {
 	battle_step(gs, attacking_card) {
 	    let oppos = findoppos(_pos)
 	    let defending_card = G.stage(gs, inactiveplayer(gs)).getIn(oppos)
-	    if(iscard(defending_card)) {
+	    if(List.isList(defending_card) && iscard(defending_card = defending_card.first())) {
 		let attack_power = attacking_card.getIn(['active', 'power'])
 		
 		let defending_power = defending_card.getIn(['active', 'power'])
@@ -348,17 +348,18 @@ const AttackPhase = function(gs, ui) {
 		let apow = typeof attack_power === 'function' ? attack_power(gs) : attack_power;
 		let dpow = typeof defending_power === 'function' ? defending_power(gs) : defending_power;
 		if(apow >= dpow) {
-		    defending_card = defending_card.getIn(['status', 'reversed'])
+		    defending_card = defending_card.updateIn(['status'], _ => 'reversed')
 		}
 		if(dpow >= apow) {
-		    attcack_card = attack_card.getIn(['status', 'reversed'])
+		    attacking_card = attacking_card.updateIn(['status'], _ => 'reversed')
 		}
 	    }
-	    return of(gs.updateIn([currentplayer(gs), 'stage'], stage => {
-		return stage.updateIn(_pos, pos => {
-		    return pos.update(0, _ => attacking_card)
-		})
-	    })
+	    return of(gs
+		      .updateIn([currentplayer(gs), 'stage'], stage => {
+			  return stage.updateIn(_pos, pos => {
+			      return pos.update(0, _ => attacking_card)
+			  })
+		      })
 		      .updateIn([inactiveplayer(gs), 'stage'], stage => {
 			  return stage.updateIn(oppos, pos => {
 			      return pos.update(0, _ => defending_card)
@@ -368,33 +369,36 @@ const AttackPhase = function(gs, ui) {
 
 	encore(gs, attacking_card) {
 
-	    const applyEncoreActions = (obs, player, pos) => {
+	    const applyEncoreActions = (gs, player, pos) => {
+		let stock = G.stock(gs, player)
 		return card => {
-		    return card.updateIn(['actions'], _ => {
-			return fromJS([
-			    {
-				exec() {
-				    
-				},
-				desc: "3 Encore"
+		    let actions = [
+			{
+			    exec() {
+				let stage = G.stage(gs, player)
+				let cards = stage.getIn(pos)
+				return of(gs.updateIn([player, 'stage'], stage => {
+				    return stage.updateIn(pos, _ => List())
+				})
+					  .updateIn([player, 'waiting_room'], wr => {
+					      return cards.concat(wr)
+					  }))
+				
+				
 			    },
-			    {
-				exec() {
-				    let stage = G.stage(gs, player)
-				    let cards = stage.getIn(pos)
-				    return of(gs.updateIn([player, 'stage'], stage => {
-					return stage.updateIn(pos, _ => List())
-				    })
-					      .updateIn([player, 'waiting_room'], wr => {
-						  return cards.concat(wr)
-					      }))
-				    
-				    
-				},
-				desc: "Retire"
-			    }
-			    
-			])
+			    desc: "Retire"
+			}
+			
+		    ]
+		    if(stock.size > 3) {
+			actions.push({
+			    exec() {
+			    },
+			    desc: "Encore 3"
+			})
+		    }
+		    return card.updateIn(['actions'], _ => {
+			return fromJS(actions)
 		    }).
 			updateIn(['cardactions'], _ => {
 			    let f = card.getIn(['availablecardactions'])
@@ -420,58 +424,65 @@ const AttackPhase = function(gs, ui) {
 		return gs => {
 		    let cards = G.stage(gs, player).getIn(pos);
 		    let card = cards.first()
-		    if(iscard(card) && card.getIn(['status','reversed'])) {
-			return of(gs)
-			    .mergeMap(gs => {
-				return gs.updateIn([player, 'stage'], stage => {
-				    return stage.updateIn(pos, p => {
-					return p.update(0, applyEncoreActions(obs, player, pos))
-				    })
-				})
-				
+	 	    if(iscard(card) && card.getIn(['status']) === 'reversed') {
+			return gs.updateIn([player, 'stage'], stage => {
+			    return stage.updateIn(pos, p => {
+				return p.update(0, applyEncoreActions(gs, player, pos))
 			    })
-			    .mergeMap(ui.updateUI({evt:"encore"}))
-			    .subscribe(gs => {
-				//
-			    })
+			})
 			
 		    }
-		    return of(gs)
+		    return gs
 
 		}
 	    }
 	    
-	    const updateUI = evt => {
+	    const updateUI = (evt) => {
 		return gs => {
 		    return create(obs => {
-			ui.updateUI(gs, obs, evt)
+			return ui.updateUI(gs, obs, evt)
 		    })
-		    
 		}
+				 
+	    }
+
+	    const checkisreversed = (gs, player, pos) => {
+		let card = gs.getIn([player, 'stage'].concat(pos))
+		return List.isList(card) && iscard(card.first()) && card.first().getIn(['status']) === 'reversed'
+	    }
+	    
+	    const hasreversed = gs => {
+		let c = currentplayer(gs), o = inactiveplayer(gs)
+		if(checkisreversed(gs, c, ['center', 'left']) ||
+		   checkisreversed(gs, c, ['center', 'middle']) ||
+		   checkisreversed(gs, c, ['center', 'right']) ||
+		   checkisreversed(gs, c, ['back', 'left']) || 
+		   checkisreversed(gs, c, ['back', 'right']) || 
+		   checkisreversed(gs, o, ['center', 'left']) || 
+		   checkisreversed(gs, o, ['center', 'middle']) ||
+		   checkisreversed(gs, o, ['center', 'right']) || 
+		   checkisreversed(gs, o, ['back', 'left']) ||
+		   checkisreversed(gs, o, ['back', 'right'])) {
+		    return this.encore(gs, attacking_card)
+		}
+		return of(gs)
 	    }
 	    
 	    return of(gs)
-		.mergeMap(applyifreversed(['center','left']))
-		.mergeMap(updateUI({evt:'encore',pos:['center','left']}))
-		.mergeMap(applyifreversed(['center','middle']))
-		.mergeMap(updateUI({evt:'encore',pos:['center','middle']}))
-		.mergeMap(applyifreversed(['center','left']))
-		.mergeMap(updateUI({evt:'encore',pos:['center','right']}))
-		.mergeMap(applyifreversed(['back','left']))
-		.mergeMap(updateUI({evt:'encore',pos:['back','left']}))
-		.mergeMap(applyifreversed(['back','right']))
-		.mergeMap(updateUI({evt:'encore',pos:['back','right']}))
+		.map(applyifreversed(['center','left']))
+	    	.map(applyifreversed(['center','middle']))
+	    	.map(applyifreversed(['center','right']))
+	    	.map(applyifreversed(['back', 'left']))
+	    	.map(applyifreversed(['back','right']))
+		.map(applyifreversed(['center','left'], inactiveplayer(gs)))
+	    	.map(applyifreversed(['center','middle'], inactiveplayer(gs)))
+	    	.map(applyifreversed(['center','right'], inactiveplayer(gs)))
+	    	.map(applyifreversed(['back', 'left'], inactiveplayer(gs)))
+	    	.map(applyifreversed(['back','right'], inactiveplayer(gs)))
+		.mergeMap(updateUI({evt:'encore'}))
+		.mergeMap(hasreversed)
 	    
-	    	.mergeMap(applyifreversed(['center','left'], inactiveplayer(gs)))
-		.mergeMap(updateUI({evt:'encore',pos:['center','left']}))
-		.mergeMap(applyifreversed(['center','middle'], inactiveplayer(gs)))
-		.mergeMap(updateUI({evt:'encore',pos:['center','middle']}))
-		.mergeMap(applyifreversed(['center','left'], inactiveplayer(gs)))
-		.mergeMap(updateUI({evt:'encore',pos:['center','right']}))
-		.mergeMap(applyifreversed(['back','left'], inactiveplayer(gs)))
-		.mergeMap(updateUI({evt:'encore',pos:['back','left']}))
-		.mergeMap(applyifreversed(['back','right'], inactiveplayer(gs)))
-		.mergeMap(updateUI({evt:'encore',pos:['back','right']}))
+			  
 	    
 	}
     }
