@@ -311,7 +311,7 @@ const hasavailableactions = function(gs, field) {
 		    // 	if(a) {
 		    // 	    console.log(T.getIn(['actions']))
 		    // 	}
-			
+		    
 		    // }
 		}
 		else if(List.isList(T) && iscard(T.first())) {
@@ -379,4 +379,89 @@ function reset(gs) {
     return gs;
 }
 
-export { debug, iscard, findopenpositions, currentplayer, collectactivateablecards, inactiveplayer, isevent, isclimax, canplay, payment, findcardonstage, findstageposition, G, dealdamage, clockDamage, hasavailableactions, clearactions, reset }
+// apply all currently available continous actions and attaches active actions ( which require input from the user ) to activate
+// gs - gamestate
+// evt - the event that occurred
+const applyActions = (gs, evt, ui, next) => {
+    let activecards = collectactivateablecards(gs)
+    activecards.forEach( T => {
+	let f = undefined;
+	if(f =  T.getIn(['passiveactions']))
+	    gs = f(gs, evt)
+	
+	return true;
+    })
+
+    let getcardactions = deck => deck.update(0,
+					     l => {
+
+						 if(iscard(l)) {
+
+						     return l.updateIn(['cardactions'], _ => {
+							 let f = undefined;
+
+							 if(f = l.getIn(['availablecardactions'])) {
+							     //console.log(l)
+				 			     //console.log(`wrapping ${f}`)
+							     let cardactions = f(gs, evt)
+							     return cardactions.map( action => {
+
+								 return action.updateIn(['exec'], exec => {
+								     return _ => {
+									 return exec(gs,ui).mergeMap(gs => {
+									     if(next)
+										 next(gs)
+									     return of(gs)
+									 })
+								     }
+								     
+								 })
+							     })
+							 }
+						     })
+						 }
+						 return l
+					     })
+    
+
+    let checkavailableactions = (gs) => {
+	return card => {
+	    let f = undefined;
+	    if(f = card.getIn(['availableactions']))
+		return card.updateIn(['cardactions'], _ => f(gs))
+	    return card
+	}
+    }
+
+    // add available actions to the card these are abilites that require user input ( choose, pay, whatever )
+    return gs
+	.updateIn([currentplayer(gs), 'stage'], stage => {
+	    return stage.updateIn(['center'], center => {
+		return center.updateIn(['left'], getcardactions)
+		    .updateIn(['middle'], getcardactions)
+		    .updateIn(['right'], getcardactions)
+	    })
+		.updateIn(['back'], back => {
+		    return back.updateIn(['left'], getcardactions)
+			.updateIn(['right'], getcardactions)
+		})
+	    
+	    
+	})
+	.updateIn([currentplayer(gs), 'level'], level => {
+	    return level.map(checkavailableactions(gs))
+	})
+	.updateIn([currentplayer(gs), 'clock'], clock => {
+	    return clock.map(checkavailableactions(gs))
+	})
+	.updateIn([currentplayer(gs), 'memory'], memory => {
+	    return memory.map(checkavailableactions(gs))
+	})
+	.updateIn([currentplayer(gs), 'waiting_room'], waiting_room => {
+	    return waiting_room.map(checkavailableactions(gs))
+	})
+    
+    
+}
+
+export { applyActions ,debug, iscard, findopenpositions, currentplayer, collectactivateablecards, inactiveplayer, isevent, isclimax, canplay, payment, findcardonstage, findstageposition, G, dealdamage, clockDamage, hasavailableactions, clearactions, reset }

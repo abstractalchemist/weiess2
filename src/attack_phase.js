@@ -1,5 +1,5 @@
 import { Observable } from 'rxjs'
-import { clearactions, hasavailableactions, collectactivateablecards, isclimax, inactiveplayer, currentplayer, G, findcardonstage, findstageposition, iscard, dealdamage, clockDamage } from './utils'
+import { applyActions, clearactions, hasavailableactions, collectactivateablecards, isclimax, inactiveplayer, currentplayer, G, findcardonstage, findstageposition, iscard, dealdamage, clockDamage } from './utils'
 import { refresh, applyrefreshdamage, searchwaitingroom } from './deck_utils'
 import StageSelector from './stageselector'
 //import DeckSelector from './deckselector'
@@ -163,11 +163,11 @@ const AttackPhase = function(gs, ui) {
 		o.next(gs)
 		o.complete()
 	    }))
-	    console.log(`in update, hasavailableactions ${hasavailableactions(gs1)}`)
+//	    console.log(`in update, hasavailableactions ${hasavailableactions(gs1)}`)
 	    
 	    return create(obs => {
-		console.log(`in update, hasavailableactions ${hasavailableactions(gs1)}`)
-		_ui.updateUI(gs1, obs, evt, ignoreprompt)
+//		console.log(`in update, hasavailableactions ${hasavailableactions(gs1)}`)
+		_ui.updateUI(applyActions(gs1, evt, _ui, f(obs)), obs, evt, ignoreprompt)
 	    })
 	}
     }

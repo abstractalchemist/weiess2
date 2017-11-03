@@ -2,7 +2,7 @@ import { expect } from 'chai'
 import { clearactions, hasavailableactions } from '../src/utils'
 import GameStateFactory from '../src/game_state'
 import { basecard, basestack } from './utils'
-import GamePositions, { currentplayer } from '../src/game_pos'
+import GamePositions, { currentplayer, inactiveplayer } from '../src/game_pos'
 import { fromJS } from 'immutable'
 
 describe('utils test', function() {

@@ -4,17 +4,13 @@ function currentplayer(gs) {
 
     if(gs.getIn(['turn']) === undefined)
 	throw "invalid turn defined"
-    return `player${gs.getIn(['turn']) % 1 + 1}`
+    return `player${gs.getIn(['turn']) % 2 + 1}`
 }
 
 function inactiveplayer(gs) {
-    if(!gs)
-	throw "currentplayer(gs) parameter null"
-
-    if(gs.getIn(['turn']) === undefined)
-	throw "invalid turn defined"
-    return `player${gs.getIn(['turn'])  % 1 + 2}`
-
+    let p = currentplayer(gs)
+    if(p === 'player1') return 'player2'
+    if(p === 'player2') return 'player1'
 }
 
 const render = function(field, gs, player) {

@@ -1,8 +1,9 @@
 import React from 'react'
-import { inactiveplayer, currentplayer } from './utils'
+import { inactiveplayer, currentplayer } from './game_pos'
 
-const master = {height:"290px",background:"url(http://www.lilakihabara.com/wp-content/uploads/2016/06/ws_cardback_600px.png)", backgroundSize:"100%"};
-
+//const master = {height:"290px",background:"url(http://www.lilakihabara.com/wp-content/uploads/2016/06/ws_cardback_600px.png)", backgroundSize:"100%"};
+//const master = {background:"url(http://www.lilakihabara.com/wp-content/uploads/2016/06/ws_cardback_600px.png)"};
+const master = {}
 function text({active,info}) {
     let level = active.level || info.level;
     let lvl = level
@@ -16,11 +17,16 @@ function text({active,info}) {
     return `Level ${lvl}, Power ${cl}`
 }
 
+function processbackground(img, status) {
+    return `no-repeat center/80% url(${img})`;
+
+}
+
 function Card({ui,gs,obs,card}) {
     card = card || { active: {}, info: {} }
     let style = Object.assign({}, master);
     if(card.info.image) {
-	style['background'] = "url(" + card.info.image + ")"
+	style['background'] = processbackground(card.info.image)
     }
     return (<div className="mdl-card game-card" > 
 	    <div className="mdl-card__title" style={style}>
@@ -78,7 +84,7 @@ function StageCard({ui,obs,gs,cards}) {
     let card = cards[0] || {active:{},info:{}};
     let style = Object.assign({}, master)
     if(card.info.image) {
-	style['background'] = "url(" + card.info.image + ")"
+	style['background'] = processbackground(card.info.image)
     }
     return (<div className="mdl-card game-card">
 	    <div className="mdl-card__title" style={style}>
@@ -176,7 +182,7 @@ function LevelCard({level}) {
     if(level && level.length > 0) {
 	card = level[0]
 	if(card.info.image) {
-	    style['background'] = "url(" + card.info.image + ")";
+	    style['background'] = processbackground(card.info.image);
 	}
     }
     return (<div className="mdl-card game-card">
@@ -231,8 +237,9 @@ function CardSlot({id, children}) {
 }
 
 function fieldReverse({game_state,obs}, controller) {
-    
-    let gs = game_state.getIn([inactiveplayer(game_state)]).toJS();
+    let player;
+    let gs = game_state.getIn([player = inactiveplayer(game_state)]).toJS();
+    console.log(`rendering ${player} on turn ${game_state.getIn(['turn'])}`)
     //    console.log(gs)
     let center= [ <SpacerSlot key='spacer-1' id='spacer-1' width={2} />,  // spacer
 		  <SpacerSlot key='spacer-2' id='spacer-2' width={2} />,  // spacer		  
