@@ -8,6 +8,28 @@ const iscard = function(c) {
     return c !== undefined && isImmutable(c) && c.has('active') && c.has('info');
 }
 
+const validateloc = (label, gs) => {
+    let loc = gs.getIn([label])
+    if(!List.isList(loc))
+	throw new Error(`${label} is undefined or not a list`)
+    if(loc.find(T => T === undefined) || loc.find(T => !Map.isMap(T))) {
+	throw new Error(`${label} contains undefined`)
+    }
+}
+
+const validateside = side => {
+    validateloc('deck', side)
+    validateloc('memory', side)
+    validateloc('clock', side)
+    validateloc('level', side)
+    validateloc('waiting_room', side)
+    validateloc('stock', side)
+}
+
+const validatefield = gs => {
+    validateside(gs.getIn([currentplayer(gs)]))
+    validateside(gs.getIn([inactiveplayer(gs)]))
+}
 
 function getposition(location) {
     return (gs, player) => {
@@ -84,14 +106,16 @@ const implcollectplayercards = function(player, gs) {
     checkundefined(waiting_room, 'waiting_room')
     checkundefined(memory, 'memory')
     checkundefined(cards, 'allcards')
-    console.log(`size of cards ${cards.size}`)
+//    console.log(`size of cards ${cards.size}`)
     return cards;
 }
 
 
 
 // collects all cards that could possibly have an affect on the game through either passive or active abilities
+
 const collectactivateablecards = function(gs) {
+    validatefield(gs)
     return implcollectplayercards(currentplayer(gs), gs).concat(implcollectplayercards(inactiveplayer(gs), gs))
 }
 
@@ -292,6 +316,7 @@ const findcardonstage = function(gs, card) {
 }
 
 const dealdamage = function(count, gs, player, cancelable = true) {
+    validatefield(gs)
     player = player || currentplayer(gs)
     let canceled = false;
     let i = 0;
@@ -299,7 +324,8 @@ const dealdamage = function(count, gs, player, cancelable = true) {
     let deck = G.deck(gs)
     while(i++ < count && !canceled) {
 	let dmg = deck.first()
-	deck = refresh(gs.updateIn([player, 'deck'], deck => deck.shift()), player)
+	gs = refresh(gs.updateIn([player, 'deck'], deck => deck.shift()), player)
+	deck = G.deck(gs)
 	if(cancelable && isclimax(dmg)) {
 	    canceled = true;
 	}
@@ -307,11 +333,13 @@ const dealdamage = function(count, gs, player, cancelable = true) {
 	
     }
     if(canceled) {
-	return gs.updateIn([inactiveplayer(gs), 'waiting_room'], wr => fromJS(damage).concat(wr))
+	gs = gs.updateIn([inactiveplayer(gs), 'waiting_room'], wr => fromJS(damage).concat(wr))
     }
     else {
-	return gs.updateIn([inactiveplayer(gs), 'clock'], clock => fromJS(damage).concat(clock))
+	gs = gs.updateIn([inactiveplayer(gs), 'clock'], clock => fromJS(damage).concat(clock))
     }
+    validatefield(gs)
+    return gs;
 
 }
 
@@ -404,6 +432,7 @@ function reset(gs) {
 // gs - gamestate
 // evt - the event that occurred
 const applyActions = (gs, evt, ui, next) => {
+    
     let activecards = collectactivateablecards(gs).filter(T => T !== undefined)
     activecards.forEach( T => {
 	let f = undefined;
@@ -488,4 +517,4 @@ const applyActions = (gs, evt, ui, next) => {
     
 }
 
-export { applyActions ,debug, iscard, findopenpositions, currentplayer, collectactivateablecards, inactiveplayer, isevent, isclimax, canplay, payment, findcardonstage, findstageposition, G, dealdamage, clockDamage, hasavailableactions, clearactions, reset }
+export { applyActions ,debug, iscard, findopenpositions, currentplayer, collectactivateablecards, inactiveplayer, isevent, isclimax, canplay, payment, findcardonstage, findstageposition, G, dealdamage, clockDamage, hasavailableactions, clearactions, reset, validatefield }
