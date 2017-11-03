@@ -1,6 +1,6 @@
 import Http from 'utils';
 import { Observable } from 'rxjs'
-
+import { Status } from './battle_const'
 export default (function() {
 
     const internalmapper = card => {
@@ -10,6 +10,7 @@ export default (function() {
 	let cost = parseInt(card.cost)
 	return {
 	    info:Object.assign({},card,{ title:card.name,level, power, soul, cost }),
+	    status:Status.stand(), 
 	    active:{
 		power:0,
 		level,

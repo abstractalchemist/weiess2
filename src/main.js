@@ -33,6 +33,19 @@ class Main extends React.Component {
 	
     }
 
+    closeCurrentPrompt() {
+	if(this.state.prompt) {
+	    try {
+
+		// it's usually ok if this failse
+		document.querySelector('#' + this.state.prompt.id).close()
+	    }
+	    catch(e) {
+	    }
+	    this.setState({prompt:undefined})
+	}
+    }
+    
     // ignoreprompts is a hack which calling implies ignoring the promt
     updateUI(gs, obs, evt, ignoreprompts) {
 	

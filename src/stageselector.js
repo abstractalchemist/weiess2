@@ -10,6 +10,7 @@ function StageSelector({onselect, openpositions, selectioncount}) {
     let click = evt => {
 	//	onselect(openpositions[0])
 	let d = document.querySelector('#stage-select table tr.is-selected')
+	document.querySelector('#stage-select').close()
 	if(d) {
 	    let stage = d.dataset.stage
 	    let pos = d.dataset.pos
@@ -17,7 +18,7 @@ function StageSelector({onselect, openpositions, selectioncount}) {
 	}
 	else 
 	    onselect(openpositions[0])
-	document.querySelector('#stage-select').close()
+
     }
 
     // we default to selecting a single position or update selection count position

@@ -1,4 +1,4 @@
-import { fromJS, isImmutable, List } from 'immutable'
+import { fromJS, isImmutable, List, Map } from 'immutable'
 import { Observable } from 'rxjs'
 const { of } = Observable
 import GamePositions, { currentplayer, inactiveplayer } from './game_pos'
@@ -64,6 +64,7 @@ const implcollectplayercards = function(player, gs) {
 	.concat(G.clock(gs, player))
 	.concat(G.memory(gs, player))
 	.concat(G.hand(gs, player))
+	.concat(G.deck(gs, player))
 	.concat(G.waiting_room(gs, player))
 }
 
@@ -386,9 +387,12 @@ const applyActions = (gs, evt, ui, next) => {
     let activecards = collectactivateablecards(gs)
     activecards.forEach( T => {
 	let f = undefined;
-	if(f =  T.getIn(['passiveactions']))
+
+	if(Map.isMap(T) && (f =  T.getIn(['passiveactions'])))
 	    gs = f(gs, evt)
-	
+	else if(!T.getIn)
+	    console.log(` T is ${T}`)
+	    
 	return true;
     })
 

@@ -5,10 +5,10 @@ import StageSelector from './stageselector'
 //import DeckSelector from './deckselector'
 const { of, create } = Observable;
 import { fromJS, List } from 'immutable'
-
+import { Triggers, Status } from './battle_const'
 const AttackPhase = function(gs, ui) {
 
-    let _attacking_card = undefined
+//    let _attacking_card = undefined
     let _pos = undefined;
     let _attack_type = undefined;
     let _ui = ui;
@@ -19,7 +19,7 @@ const AttackPhase = function(gs, ui) {
 	player = player || currentplayer(gs)
 	let stage = G.stage(gs, player)
 	let c = undefined;
-	return iscard( c= stage.getIn(pos).first()) && c.getIn(['status']) === 'stand'
+	return iscard( c= stage.getIn(pos).first()) && Status.stand(c)
     }
 
     const isempty = (pos, player) => {
@@ -53,10 +53,9 @@ const AttackPhase = function(gs, ui) {
 			    actions = [
 				{
 				    exec() {
-					_attacking_card = card.updateIn(['status'], _ => 'resting')
 					_attack_type = 'front'
-					_pos = pos1;
-					return of(gs.updateIn([currentplayer(gs), 'stage'].concat(pos1), cards => cards.update(0, _ => _attacking_card)))
+					_pos = pos1
+					return of(gs.updateIn([currentplayer(gs), 'stage'].concat(pos1), cards => cards.update(0, card => card.updateIn(['status'], _ => Status.rest()))))
 					
 					
 				    },
@@ -64,10 +63,30 @@ const AttackPhase = function(gs, ui) {
 				},
 				{
 				    exec() {
-					_attacking_card = card.updateIn(['status'], _ => 'resting')
+
 					_attack_type = 'side'
 					_pos = pos1;
-					return of(gs.updateIn([currentplayer(gs), 'stage'].concat(pos1), cards => cards.update(0, _ => _attacking_card)))
+					return of(gs
+						  .updateIn([currentplayer(gs), 'stage'].concat(pos1),
+							    cards =>
+							    cards.update(0,
+									 card => card.updateIn(['status'], _ => Status.rest()).updateIn(['soul'], s => {
+									     let o = gs.getIn([inactiveplayer(gs), 'stage'].concat(oppos))
+									     if(List.isList(o) && iscard(o = o.first())) {
+										 
+										 let level = o.getIn(['level'])
+										 if(typeof level === 'function')
+										     level = level(gs)
+										 return gs => {
+										     if(typeof s === 'function') {
+											 return s(gs) - level
+										     }
+										     return s - level;
+										 }
+									     }
+									     return s
+									 }))))
+
 
 				    },
 				    desc:"Side" 
@@ -78,10 +97,10 @@ const AttackPhase = function(gs, ui) {
 			    actions = [
 				{
 				    exec() {
-					_attacking_card = card.updateIn(['status'], _ => 'resting')
+
 					_attack_type = 'direct'
 					_pos = pos1;
-					return of(gs.updateIn([currentplayer(gs), 'stage'].concat(pos1), cards => cards.update(0, _ => _attacking_card)))
+					return of(gs.updateIn([currentplayer(gs), 'stage'].concat(pos1), cards => cards.update(0, card => card.updateIn(['status'], _ => Status.rest()))))
 				    },
 				    desc:"Direct"
 				}
@@ -117,7 +136,7 @@ const AttackPhase = function(gs, ui) {
 
     const fromdeckblind = (dest, desc) => {
 	return gs => {
-	    return gs.updateIn([currentplayer(gs), 'deck'], deck => {
+  	    return gs.updateIn([currentplayer(gs), 'deck'], deck => {
 		return deck.update(0, card => {
 		    return card.getupdateIn(['actions'], _ => {
 			return fromJS([
@@ -125,9 +144,11 @@ const AttackPhase = function(gs, ui) {
 				exec() {
 				    return of(gs)
 					.map(gs => {
-					    let deck = G.deck(gs)
-					    let card = deck.first()
-					    return refresh(gs.updateIn([currentplayer(gs),'deck'], deck => deck.shift())).updateIn([currentplayer(gs), dest], stock => stock.push(card))
+					    gs = drawfromdeck(1, 'hand', gs)
+					    return gs.updateIn(['stock'], stock => stock.push(card))
+					    // let deck = G.deck(gs)
+					    // let card = deck.first()
+					    // return refresh(gs.updateIn([currentplayer(gs),'deck'], deck => deck.shift())).updateIn([currentplayer(gs), dest], stock => stock.push(card))
 					})
 				},
 				desc:desc
@@ -177,7 +198,10 @@ const AttackPhase = function(gs, ui) {
 	setpos(pos) {
 	    _pos = pos
 	},
-
+	attack_pos() {
+	    return _pos
+	},
+	updateUI:updateUI,
 	// runs through each phase
 	resolve() {
 	    return of(_gs)
@@ -188,26 +212,30 @@ const AttackPhase = function(gs, ui) {
 		.mergeMap(updateUI({evt:"attack_select"}, true))
 		.map(clearactions)
 		.mergeMap(gs => {
-		    let attacking_card = _attacking_card
-		    if(attacking_card) {
+//		    let attacking_card = _attacking_card
+		    if(_pos) {
 			return of(gs)
 			    .mergeMap(updateUI({evt:"attack_trigger"}, true))
-			    .mergeMap(gs => this.trigger(gs, _attacking_card))
+			    .mergeMap(gs => this.trigger(gs))
 			    .map(applyrefreshdamage)
 			    .mergeMap(clockDamage(ui))
-			    .mergeMap(updateUI({evt:"attack_counter"}, true))
-			    .mergeMap(gs  => this.counter_attack(gs, _attacking_card))
+			    .mergeMap(gs => {
+				if(_attack_type === 'front')
+				    return of(gs).mergeMap(updateUI({evt:"attack_counter"}, true))
+				    .mergeMap(gs  => this.counter_attack(gs))
+				return of(gs)
+			    })
 			    .mergeMap(updateUI({evt:"attack_damage"}, true))
-			    .mergeMap(gs => this.damage(gs, _attacking_card))
+			    .mergeMap(gs => this.damage(gs))
 			    .map(applyrefreshdamage)
 			    .mergeMap(clockDamage(ui))
 			    .mergeMap(clockDamage(ui, inactiveplayer(gs)))
 			    .mergeMap(gs => {
-				if(_attack_type === 'direct')
+				if(_attack_type === 'direct' || _attack_type === 'side')
 				    return of(gs)
 				return of(gs)
 				    .mergeMap(updateUI({evt:"attack_battle"}, true))
-				    .mergeMap(gs => this.battle_step(gs, _attacking_card))
+				    .mergeMap(gs => this.battle_step(gs))
 			    })
 			
 			
@@ -220,7 +248,7 @@ const AttackPhase = function(gs, ui) {
 		    const is_stage_resting = stack => {
 			let c;
 			if(List.isList(stack) && stack.size > 0 && iscard(c = stack.first())) {
-			    return c.getIn(['status']) !== 'stand'
+			    return Status.stand(c)
 			}
 			return true
 		    }
@@ -236,7 +264,7 @@ const AttackPhase = function(gs, ui) {
 		    return of(_gs)
 		})
 		.mergeMap(updateUI({evt:"attack_encore"}, true))
-		.mergeMap(gs => this.encore(gs, _attacking_card))
+		.mergeMap(gs => this.encore(gs))
 	    
 	},
 	
@@ -245,15 +273,19 @@ const AttackPhase = function(gs, ui) {
 	    return of(addattackoptions(gs))
 	},
 	
-	trigger(gs, attacking_card) {
+	trigger(gs) {
+	    if(!_pos)
+		return of(gs)
 	    let deck = G.deck(gs)
+	    
+	    let attacking_card = gs.getIn([currentplayer(gs), 'stage'].concat(_pos)).first()
 	    let trigger_card = deck.first();
 	    gs = refresh(gs.updateIn([currentplayer(gs), 'deck'], deck => deck.shift()))
 	    let prompt = undefined;
 	    if(iscard(trigger_card)) {
 		let trigger_action = trigger_card.getIn(['info', 'trigger_action'])
 		switch(trigger_action) {
-		case "soul +1": {
+		case Triggers.soul : {
 		    attacking_card = attacking_card.updateIn(['active', 'soul'], soul => {
 			return gs => {
 			    if(typeof soul === 'function')
@@ -263,7 +295,7 @@ const AttackPhase = function(gs, ui) {
 		    })
 		}
 		    break;
-		case "soul +2":{
+		case Triggers.soul2 : {
 		    attacking_card = attacking_card.updateIn(['active', 'soul'], soul => {
 			return gs => {
 			    if(typeof soul === 'function')
@@ -274,30 +306,30 @@ const AttackPhase = function(gs, ui) {
 
 		}
 		    break;
-		case "pool":{
+		case Triggers.pool : {
 		    gs = fromdeckblind('stock', 'Pool')(gs)
 		}
 		    break;
-		case "come_back":{
+		case Triggers.salvage : {
 		    prompt = ui.prompt(searchwaitingroom)
 
 		}
 		    break;
-		case "draw":{
+		case Triggers.draw : {
 		    gs = fromdeckblind('hand', 'Draw')(gs)
 		}
 		    break;
-		case "shot":{
+		case Triggers.shot :{
 		    
 		}
 		    break;
-		case "treasure":{
-		}
+		case Triggers.treasure: {
+		    
 		    gs = gs.updateIn([currentplayer(gs), 'hand'], hand => hand.push(trigger_card))
 			.updateIn([currentplayer(gs), 'deck'], deck => {
 			    if(deck.size > 0) {
 				return deck.update(0, card => {
-				    return card.getIn(['actions'], _ => {
+				    return card.updateIn(['actions'], _ => {
 					return fromJS([
 					    {
 						exec() {
@@ -315,14 +347,23 @@ const AttackPhase = function(gs, ui) {
 			    }
 			    return deck;
 			})
+		}
+		    break;
+		default:
 		    break;
 		}
-		gs = gs.updateIn(['trigger'], _ => trigger_action)
+		
+		gs = gs.updateIn(['triggeraction'], _ => trigger_action)
+		    
 	    }
+
+//	    console.log(`looking at ${pos}`)
+	    if(_pos)
+		return of(gs.updateIn([currentplayer(gs), 'stage'].concat(_pos), cards => cards.update(0, _ => attacking_card)))
 	    return of(gs)
 	},
 	
-	counter_attack(gs, attacking_card) {
+	counter_attack(gs) {
 	    return of(gs.updateIn([inactiveplayer(gs), 'hand'], hand => {
 		return hand.map(c => {
 		    if(c.getIn(['info', 'counter'])) {
@@ -349,22 +390,32 @@ const AttackPhase = function(gs, ui) {
 	    }))
 	},
 
-	damage(gs, attacking_card) {
+	damage(gs) {
+	    if(!_pos)
+		return of(gs)
+	    let attacking_card = gs.getIn([currentplayer(gs), 'stage'].concat(_pos)).first();
 	    let soul = attacking_card.getIn(['active','soul'])
+//	    let pos = findstageposition(gs, attacking_card)
 	    let soulcount = soul;
 	    if(typeof soul === 'function')
 		soulcount = soul(gs)
 	    if(_attack_type === 'direct')
 		soulcount ++;
+	    if(soulcount < 0) soulcount = 0
 	    gs = dealdamage(soulcount, gs, inactiveplayer(gs))
 	    if(gs.getIn(['trigger']) === 'shot')
 		gs = dealdamage(soulcount, gs, inactiveplayer(gs), false)
+	    // if(pos)
+	    // 	_attacking_card = gs.getIn([currentplayer(gs), 'stage'].concat(pos)).first();
 	    return of(gs);
 	    
 	},
 
 
-	battle_step(gs, attacking_card) {
+	battle_step(gs) {
+	    if(!_pos)
+		return of(gs)
+	    let attacking_card = gs.getIn([currentplayer(gs), 'stage'].concat(_pos)).first()
 	    let oppos = findoppos(_pos)
 	    let defending_card = G.stage(gs, inactiveplayer(gs)).getIn(oppos)
 	    if(List.isList(defending_card) && iscard(defending_card = defending_card.first())) {
@@ -375,10 +426,10 @@ const AttackPhase = function(gs, ui) {
 		let apow = typeof attack_power === 'function' ? attack_power(gs) : attack_power;
 		let dpow = typeof defending_power === 'function' ? defending_power(gs) : defending_power;
 		if(apow >= dpow) {
-		    defending_card = defending_card.updateIn(['status'], _ => 'reversed')
+		    defending_card = defending_card.updateIn(['status'], _ => Status.reversed())
 		}
 		if(dpow >= apow) {
-		    attacking_card = attacking_card.updateIn(['status'], _ => 'reversed')
+		    attacking_card = attacking_card.updateIn(['status'], _ => Status.reversed())
 		}
 	    }
 	    return of(gs
@@ -394,7 +445,7 @@ const AttackPhase = function(gs, ui) {
 		      }))
 	},
 
-	encore(gs, attacking_card) {
+	encore(gs) {
 
 	    const applyEncoreActions = (gs, player, pos) => {
 		let stock = G.stock(gs, player)
@@ -451,7 +502,7 @@ const AttackPhase = function(gs, ui) {
 		return gs => {
 		    let cards = G.stage(gs, player).getIn(pos);
 		    let card = cards.first()
-	 	    if(iscard(card) && card.getIn(['status']) === 'reversed') {
+	 	    if(iscard(card) && Status.reversed(card)) {
 			return gs.updateIn([player, 'stage'], stage => {
 			    return stage.updateIn(pos, p => {
 				return p.update(0, applyEncoreActions(gs, player, pos))
@@ -475,7 +526,7 @@ const AttackPhase = function(gs, ui) {
 
 	    const checkisreversed = (gs, player, pos) => {
 		let card = gs.getIn([player, 'stage'].concat(pos))
-		return List.isList(card) && iscard(card.first()) && card.first().getIn(['status']) === 'reversed'
+		return List.isList(card) && iscard(card.first()) && Status.reversed(card.first())
 	    }
 	    
 	    const hasreversed = gs => {

@@ -43,7 +43,7 @@ function updatepowers(by) {
     return (ui, cardcount, game_state) => {
 	return ui.prompt(func => {
 	    return {
-		id:'stage-selector',
+		id:'stage-select',
 		prompt: <StageSelector onselect={
 		    positions => {
 			if(positions.length <= cardcount) {

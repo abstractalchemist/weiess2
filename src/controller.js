@@ -8,6 +8,7 @@ import { applyActions, reset, shuffle, debug, iscard, findopenpositions, collect
 import { refresh, applyrefreshdamage, searchdeck, drawfromdeck } from './deck_utils'
 import AttackPhase from './attack_phase'
 import GamePhases from './game_phases'
+import { Status } from './battle_const'
 /*
 
   cards have a format 
@@ -285,7 +286,7 @@ const ControllerFactory = function(game_state) {
 	standup() {
 	    let standcard = cards => cards.update(0, card => {
 		if(iscard(card))
-		    return card.updateIn(['status'], _ => 'stand')
+		    return card.updateIn(['status'], _ => Status.stand())
 		return card
 	    })
 
@@ -376,24 +377,35 @@ const ControllerFactory = function(game_state) {
 				    exec() {
 					return _ui.prompt(obs => {
 					    return {
-						id:'stage-selector',
+						id:'stage-select',
 						prompt: 
 						    <StageSelector onselect={
 							([deststage, destpos]) => {
 							    let cardpos = gs.getIn([currentplayer(gs), 'stage', srcstage, srcpos])
-							    let carddes = gs.getIn([currentplayer(gs), 'stage', deststage, destpos])
-							    
-							    
-							    // all cards here go into the waiting room
-							    if(iscard(carddes.first())) {
+							    let carddes = undefined
+							    if(destpos) {
+								carddes = gs.getIn([currentplayer(gs), 'stage', deststage, destpos])
 								
-								gs = gs.updateIn([currentplayer(gs), 'waiting_room'], waiting_room => carddes.concat(waiting_room))
+								
+								// all cards here go into the waiting room
+								if(iscard(carddes.first())) {
+								    
+								    gs = gs.updateIn([currentplayer(gs), 'waiting_room'], waiting_room => carddes.concat(waiting_room))
+								}
 							    }
-							    
-							    return of(gs
-								      .setIn([currentplayer(gs), 'stage', deststage, destpos], cardpos)
-								      .setIn([currentplayer(gs), 'stage', srcstage, srcpos], List()))
-								.mergeMap(updateUI({ evt: "move", id:cardpos.first().getIn(['info','id']) }), true)
+							    _ui.closeCurrentPrompt();
+							    let moveRx;
+							    if(destpos) {
+								moveRx = of(gs
+									    .setIn([currentplayer(gs), 'stage', deststage, destpos], cardpos)
+									    .setIn([currentplayer(gs), 'stage', srcstage, srcpos], List()))
+							    }
+							    else {
+								moveRx = of(gs
+									    .updateIn([currentplayer(gs), deststage], wr => cardpos.concat(wr)))
+							    }
+								
+							    return moveRx.mergeMap(updateUI({ evt: "move", id:cardpos.first().getIn(['info','id']) }, true))
 								.subscribe(
 								    gs => {
 									obs(gs)
@@ -404,12 +416,15 @@ const ControllerFactory = function(game_state) {
 								    _ => {
 								    })
 
+
 							}
 						    } openpositions={[['center','left'],
 								      ['center','middle'],
 								      ['center','right'],
 								      ['back','left'],
-								      ['back','right']]}/>
+								      ['back','right'],
+								      ['waiting_room', '']
+								     ]}/>
 					    }
 					})
 					

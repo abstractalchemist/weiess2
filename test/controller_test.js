@@ -118,7 +118,7 @@ describe('ControllerFactory', function() {
 	let card = basecard()
 	let [gs, controller] = init('clock', 0, {
 	    updateUI(gs, obs, evt) {
-//		console.log(` has gs ${gs !== gs}, obs ${obs}, evt ${evt}`)
+		//		console.log(` has gs ${gs !== gs}, obs ${obs}, evt ${evt}`)
 		if(hasavailableactions(gs)) {
 		    console.log('looking at available actions')
 		    let hand = gs.getIn([currentplayer(gs),'hand'])
@@ -155,7 +155,7 @@ describe('ControllerFactory', function() {
     })
 
     xit('main - play a card', function(done) {
-//	let passes = 0;
+	//	let passes = 0;
 	let [gs, controller] = init('main', 0, {
 	    updateUI(gs, obs, evt) {
 		let hand = G.hand(gs)
@@ -254,7 +254,7 @@ describe('ControllerFactory', function() {
 		    // since the test is to move a single card, we just quit here
 		    else {
 			obs.next(gs.setIn(['endmainphase'], true))
-		    
+			
 			obs.complete()
 		    }
 		}
@@ -284,7 +284,7 @@ describe('ControllerFactory', function() {
     it('main - activated ability ( brainstorm )', function(done) {
 	let [gs, controller] = init('main', 0, {
 	    updateUI(gs, obs, evt) {
-//		console.log(`entering update with gs? ${gs !== undefined}, ${obs}, ${evt}`)
+		//		console.log(`entering update with gs? ${gs !== undefined}, ${obs}, ${evt}`)
 		let stage = gs.getIn([currentplayer(gs), 'stage','center','middle'])
 		let card = stage.first();
 		if(hasavailableactions(gs)) {// && evt.when !== "start") {
@@ -313,7 +313,7 @@ describe('ControllerFactory', function() {
 			}
 		    }
 		    else {
-//			console.log(`no card actions`)
+			//			console.log(`no card actions`)
 			obs.next(gs)
 			obs.complete()
 		    }
@@ -323,7 +323,7 @@ describe('ControllerFactory', function() {
 
 		// since the test is to move a single card, we just quit here
 		else if(obs) {
-//		    console.log(`no available actions`)
+		    //		    console.log(`no available actions`)
 		    obs.next(gs)
 		    obs.complete()
 		}
@@ -376,16 +376,16 @@ describe('ControllerFactory', function() {
 	let [gs, controller] = init('climax', 0,  {
 	    updateUI(gs, obs, evt) {
 		let hasactions = hasavailableactions(gs)
-//		console.log(`has actions ${hasactions}`)
+		//		console.log(`has actions ${hasactions}`)
 		if(hasactions) {
 		    let hand;
 		    let climax;
 		    let exec;
-		
+		    
 		    if((hand = G.hand(gs)) && (climax = hand.first()) && (exec = C.firstaction(climax))) {
 			//			expect(evt.evt).to.equal('climax')
 			
-		    // we exec this to 'play' the card
+			// we exec this to 'play' the card
 			exec().subscribe(gs => {
 			    obs.next(gs)
 			    obs.complete()

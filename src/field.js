@@ -1,6 +1,6 @@
 import React from 'react'
 import { inactiveplayer, currentplayer } from './game_pos'
-
+import { Status } from './battle_const'
 //const master = {height:"290px",background:"url(http://www.lilakihabara.com/wp-content/uploads/2016/06/ws_cardback_600px.png)", backgroundSize:"100%"};
 //const master = {background:"url(http://www.lilakihabara.com/wp-content/uploads/2016/06/ws_cardback_600px.png)"};
 const master = {}
@@ -86,7 +86,15 @@ function StageCard({ui,obs,gs,cards}) {
     if(card.info.image) {
 	style['background'] = processbackground(card.info.image)
     }
-    return (<div className="mdl-card game-card">
+    if(card.info.image && Status.rest(card)) {
+	style['transform'] = 'rotate(90deg)';
+	style['transformOrigin'] = 'center';
+    }
+    if(card.info.image && Status.reversed(card)) {
+	style['transform'] = 'rotate(180deg)';
+	style['transformOrigin'] = 'center';
+    }
+    return (<div className="mdl-card game-card" style={( _ => Status.rest(card) ? { overflow:"initial" }: {})()} >
 	    <div className="mdl-card__title" style={style}>
 	    </div>
 	    <div className="mdl-card__supporting-text">
@@ -164,7 +172,7 @@ function DeckCard({deck}) {
 
 function StockCard({stock}) {
     let style = master
-    return (<div className="mdl-card game-card">
+    return (<div className="mdl-card game-card level">
 	    <div className="mdl-card__title" style={style}>
 	    </div>
 	    <div className="mdl-card__supporting-text">
@@ -183,9 +191,10 @@ function LevelCard({level}) {
 	card = level[0]
 	if(card.info.image) {
 	    style['background'] = processbackground(card.info.image);
+
 	}
     }
-    return (<div className="mdl-card game-card">
+    return (<div className="mdl-card game-card level">
 	    <div className="mdl-card__title" style={style}> 
 	    </div>
 	    <div className="mdl-card__supporting-text">
@@ -213,7 +222,7 @@ function WaitingCard({cards}) {
 function ClockCard({clock}) {
     let style = Object.assign({}, master)
     if(clock && clock[0]) {
-	style['background'] = 'url(' + clock[0].info.image + ')'
+	style['background'] = processbackground(clock[0].info.image);
     }
     return (<div className="mdl-card game-card" style={style}>
 	    <div className="mdl-card__title" style={style}>

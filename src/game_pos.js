@@ -1,9 +1,9 @@
 function currentplayer(gs) {
     if(!gs)
-	throw "currentplayer(gs) parameter null"
+	throw new Error("currentplayer(gs) parameter null")
 
     if(gs.getIn(['turn']) === undefined)
-	throw "invalid turn defined"
+	throw new Error("invalid turn defined")
     return `player${gs.getIn(['turn']) % 2 + 1}`
 }
 
