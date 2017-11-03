@@ -4,7 +4,7 @@ import { mount } from 'enzyme'
 import { expect } from 'chai'
 
 import { init, createprompt, basecard, addcards } from '../utils'
-import { currentplayer } from '../../src/utils'
+import { currentplayer } from '../../src/game_pos'
 import { payment } from '../../src/utils'
 
 describe('brainstorm action test', function() {

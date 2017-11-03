@@ -1,6 +1,7 @@
 import { Observable } from 'rxjs'
 import { List, fromJS } from 'immutable'
-import { currentplayer, G,iscard } from './utils'
+import { G,iscard } from './utils'
+import { currentplayer } from './game_pos'
 import React from 'react'
 import DeckSelector from './deckselector'
 

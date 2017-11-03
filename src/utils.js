@@ -54,16 +54,16 @@ const G = {
 
 const findopenpositions = function(gs) {
     let positions = []
-
-    if(iscard(gs.getIn(GamePositions.stage_cl(gs)).first()))
+    let c;
+    if(List.isList(c = gs.getIn(GamePositions.stage_cl(gs))) && !iscard(c.first()))
 	positions.push(['center','left'])
-    if(iscard(gs.getIn(GamePositions.stage_cm(gs)).first()))
+    if(List.isList(c = gs.getIn(GamePositions.stage_cm(gs))) && !iscard(c.first()))
 	positions.push(['center','middle'])
-    if(iscard(gs.getIn(GamePositions.stage_cr(gs)).first()))
+    if(List.isList(c = gs.getIn(GamePositions.stage_cr(gs))) && !iscard(c.first()))
 	positions.push(['center','right'])
-    if(iscard(gs.getIn(GamePositions.stage_bl(gs)).first()))
+    if(List.isList(c = gs.getIn(GamePositions.stage_bl(gs))) && !iscard(c.first()))
 	positions.push(['back','left'])
-    if(iscard(gs.getIn(GamePositions.stage_br(gs)).first()))
+    if(List.isList(c = gs.getIn(GamePositions.stage_br(gs))) && !iscard(c.first()))
 	positions.push(['back','right'])
     return positions;
 }
@@ -318,6 +318,7 @@ const findcardonstage = function(gs, card) {
 const dealdamage = function(count, gs, player, cancelable = true) {
     validatefield(gs)
     player = player || currentplayer(gs)
+    let playerdest = player === 'player1' ? 'player2' : 'player1'
     let canceled = false;
     let i = 0;
     let damage =[];
@@ -327,16 +328,17 @@ const dealdamage = function(count, gs, player, cancelable = true) {
 	gs = refresh(gs.updateIn([player, 'deck'], deck => deck.shift()), player)
 	deck = G.deck(gs)
 	if(cancelable && isclimax(dmg)) {
+
 	    canceled = true;
 	}
 	damage.push(dmg)
 	
     }
     if(canceled) {
-	gs = gs.updateIn([inactiveplayer(gs), 'waiting_room'], wr => fromJS(damage).concat(wr))
+	gs = gs.updateIn([playerdest, 'waiting_room'], wr => fromJS(damage).concat(wr))
     }
     else {
-	gs = gs.updateIn([inactiveplayer(gs), 'clock'], clock => fromJS(damage).concat(clock))
+	gs = gs.updateIn([playerdest, 'clock'], clock => fromJS(damage).concat(clock))
     }
     validatefield(gs)
     return gs;
@@ -517,4 +519,4 @@ const applyActions = (gs, evt, ui, next) => {
     
 }
 
-export { applyActions ,debug, iscard, findopenpositions, currentplayer, collectactivateablecards, inactiveplayer, isevent, isclimax, canplay, payment, findcardonstage, findstageposition, G, dealdamage, clockDamage, hasavailableactions, clearactions, reset, validatefield }
+export { applyActions ,debug, iscard, findopenpositions, collectactivateablecards,  isevent, isclimax, canplay, payment, findcardonstage, findstageposition, G, dealdamage, clockDamage, hasavailableactions, clearactions, reset, validatefield }

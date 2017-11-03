@@ -1,5 +1,6 @@
-import { currentplayer, inactiveplayer } from './utils'
+import { currentplayer, inactiveplayer } from './game_pos'
 import { Map, List } from 'immutable'
+
 
 function getlocation(gs, player, location) {
     return gs.getIn([player, location])

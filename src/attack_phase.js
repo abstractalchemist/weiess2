@@ -1,6 +1,7 @@
 import { Observable } from 'rxjs'
-import { applyActions, clearactions, hasavailableactions, collectactivateablecards, isclimax, inactiveplayer, currentplayer, G, findcardonstage, findstageposition, iscard, dealdamage, clockDamage } from './utils'
+import { applyActions, clearactions, hasavailableactions, collectactivateablecards, isclimax, G, findcardonstage, findstageposition, iscard, dealdamage, clockDamage } from './utils'
 import { drawfromdeck, refresh, applyrefreshdamage, searchwaitingroom } from './deck_utils'
+import { inactiveplayer, currentplayer } from './game_pos'
 import StageSelector from './stageselector'
 //import DeckSelector from './deckselector'
 const { of, create } = Observable;

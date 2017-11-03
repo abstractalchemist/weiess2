@@ -1,9 +1,9 @@
 import { expect } from 'chai'
-import { clearactions, hasavailableactions } from '../src/utils'
+import { applyActions ,debug, iscard, findopenpositions, collectactivateablecards, isevent, isclimax, canplay, payment, findcardonstage, findstageposition, G, dealdamage, clockDamage, hasavailableactions, clearactions, reset, validatefield  } from '../src/utils'
 import GameStateFactory from '../src/game_state'
-import { basecard, basestack } from './utils'
+import { basecard, basestack, init } from './utils'
 import GamePositions, { currentplayer, inactiveplayer } from '../src/game_pos'
-import { fromJS, List } from 'immutable'
+import { Map, fromJS, List } from 'immutable'
 
 describe('utils test', function() {
     it('init', function() {
@@ -52,6 +52,112 @@ describe('utils test', function() {
 	expect(hasavailableactions(obj)).to.be.false;
     })
 
+    it('applyActions', function() {
+	let ui;
+	let [gs, c] = init('main', 0, ui = {
+	})
+	gs = applyActions(gs, {}, ui)
+	expect(gs).to.not.be.null;
+    })
+    
+    xit('debug', function() {
+	let [gs, c] = init('main', 0)
+	
+	expect(debug('clock', gs)).to.equal('')
+	expect(debug('level', gs)).to.equal('')
+	expect(debug('memory', gs)).to.equal('')
+	expect(debug('hand', gs)).to.equal('')
+    })
+    
+    it('iscard', function() {
+	let [gs, c] = init('main', 0)
+	expect(iscard(basecard())).to.be.true;
+	expect(iscard(Map())).to.be.false;
+	expect(iscard(List())).to.be.false;
+	expect(iscard(undefined)).to.be.false
+    })
+    
+    it('findopenpositions', function() {
+	let [gs, c] = init('main', 0)
+	const open = findopenpositions(gs);
+	expect(open).to.not.be.null
+	expect(open).to.have.lengthOf(5)
+    })
+    
+    it('test collectactivateablecards', function() {
+	let [gs, c] = init('main', 0)
+	let activecards = collectactivateablecards(gs)
+	expect(activecards.size).to.equal(0)
+    })
+    
+    it('test isevent', function() {
+	let [gs, c] = init('main', 0)
+	expect(isevent(basecard())).to.be.true;
+    })
+    
+    it('test isclimax', function() {
+	let [gs, c] = init('main', 0)
+	expect(isclimax(basecard())).to.be.true;
+    })
+    
+    it('test canplay', function() {
+	let [gs, c] = init('main', 0)
+	expect(canplay(gs, basecard().updateIn(['active','level'], _ => 0))).to.be.true;
+    })
+    
+    it('test payment', function() {
+	let [gs, c] = init('main', 0)
+	gs = payment(3)(gs.updateIn([currentplayer(gs), 'stock'], deck => {
+	    return deck.unshift(basecard(), basecard(), basecard())
+	}));
+	expect(gs.getIn([currentplayer(gs), 'waiting_room']).size).to.equal(3)
+    })
+    
+    it('test findcardonstage', function() {
+	let [gs, c] = init('main', 0)
+ 	let card = basecard()
+	gs = gs.updateIn([currentplayer(gs), 'stage', 'center','left'], s => s.push(card))
+	let [c0, pos] = findcardonstage(gs, card)
+	expect(c0).to.not.be.null;
+	expect(pos[0]).to.equal('center')
+	expect(pos[1]).to.equal('left')
+    })
+    
+    it('test findstageposition', function() {
+	let [gs, c] = init('main', 0)
+	let card = basecard()
+	gs = gs.updateIn([currentplayer(gs), 'stage', 'center','left'], s => s.push(card))
+	let pos = findstageposition(gs, card.getIn(['info','id']))
+	expect(pos[0]).to.equal('center')
+	expect(pos[1]).to.equal('left')
+    })
+    
+    it('test dealdamage', function() {
+	let [gs, c] = init('main', 0)
+	gs = dealdamage(3, gs.updateIn([currentplayer(gs), 'deck'], deck => {
+	    return deck.unshift(basecard(1000), basecard(1000), basecard(1000))
+	}))
+	expect(gs.getIn([inactiveplayer(gs), 'clock']).size).to.equal(3)
+	
+	gs = dealdamage(3, gs.updateIn([inactiveplayer(gs), 'deck'], deck => {
+	    return deck.unshift(basecard(1000), basecard(1000), basecard(1000))
+	}), inactiveplayer(gs))
+	expect(gs.getIn([currentplayer(gs), 'clock']).size).to.equal(3)
+	
+    })
+    
+    it('test clockDamage', function() {
+	let [gs, c] = init('main', 0)
+    })
+    
+    it('test reset', function() {
+	let [gs, c] = init('main', 0)
+    })
+
+    it('test validatefield', function() {
+	let [gs, c] = init('main', 0)
+    })
+    
     it('test undefined', function() {
 	const l = List()
 	console.log(l.concat(List()))
