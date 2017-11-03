@@ -5,6 +5,9 @@ import { basecard, basestack, init } from './utils'
 import GamePositions, { currentplayer, inactiveplayer } from '../src/game_pos'
 import { Map, fromJS, List } from 'immutable'
 
+import { Observable } from 'rxjs'
+const { create } = Observable;
+import { mount } from 'enzyme'
 describe('utils test', function() {
     it('init', function() {
 	let obj = GameStateFactory()
@@ -58,6 +61,7 @@ describe('utils test', function() {
 	})
 	gs = applyActions(gs, {}, ui)
 	expect(gs).to.not.be.null;
+	validatefield(gs)
     })
     
     xit('debug', function() {
@@ -67,6 +71,7 @@ describe('utils test', function() {
 	expect(debug('level', gs)).to.equal('')
 	expect(debug('memory', gs)).to.equal('')
 	expect(debug('hand', gs)).to.equal('')
+	validatefield(gs)
     })
     
     it('iscard', function() {
@@ -75,6 +80,7 @@ describe('utils test', function() {
 	expect(iscard(Map())).to.be.false;
 	expect(iscard(List())).to.be.false;
 	expect(iscard(undefined)).to.be.false
+	
     })
     
     it('findopenpositions', function() {
@@ -82,12 +88,14 @@ describe('utils test', function() {
 	const open = findopenpositions(gs);
 	expect(open).to.not.be.null
 	expect(open).to.have.lengthOf(5)
+	validatefield(gs)
     })
     
     it('test collectactivateablecards', function() {
 	let [gs, c] = init('main', 0)
 	let activecards = collectactivateablecards(gs)
 	expect(activecards.size).to.equal(0)
+
     })
     
     it('test isevent', function() {
@@ -111,6 +119,7 @@ describe('utils test', function() {
 	    return deck.unshift(basecard(), basecard(), basecard())
 	}));
 	expect(gs.getIn([currentplayer(gs), 'waiting_room']).size).to.equal(3)
+	validatefield(gs)
     })
     
     it('test findcardonstage', function() {
@@ -121,6 +130,7 @@ describe('utils test', function() {
 	expect(c0).to.not.be.null;
 	expect(pos[0]).to.equal('center')
 	expect(pos[1]).to.equal('left')
+	validatefield(gs)
     })
     
     it('test findstageposition', function() {
@@ -130,6 +140,7 @@ describe('utils test', function() {
 	let pos = findstageposition(gs, card.getIn(['info','id']))
 	expect(pos[0]).to.equal('center')
 	expect(pos[1]).to.equal('left')
+	validatefield(gs)
     })
     
     it('test dealdamage', function() {
@@ -138,16 +149,51 @@ describe('utils test', function() {
 	    return deck.unshift(basecard(1000), basecard(1000), basecard(1000))
 	}))
 	expect(gs.getIn([inactiveplayer(gs), 'clock']).size).to.equal(3)
-	
+	validatefield(gs)
 	gs = dealdamage(3, gs.updateIn([inactiveplayer(gs), 'deck'], deck => {
 	    return deck.unshift(basecard(1000), basecard(1000), basecard(1000))
 	}), inactiveplayer(gs))
 	expect(gs.getIn([currentplayer(gs), 'clock']).size).to.equal(3)
+	validatefield(gs)
 	
     })
     
-    it('test clockDamage', function() {
-	let [gs, c] = init('main', 0)
+    xit('test clockDamage', function(done) {
+	let ui;
+	let [gs, c] = init('main', 0, ui = {
+	    prompt(func) {
+		return create(obs => {
+		    let { prompt, id } = func(gs => {
+			obs.next(gs)
+			obs.complete()
+		    })
+		    let p = mount(prompt)
+		    p.find('#ok').simulate('click')
+		})
+					  
+	    }
+	})
+
+	let obs = clockDamage(ui)(gs)
+	obs.subscribe(gs => {
+	    expect(gs).to.not.be.null
+	    validatefield(gs)
+	    
+	    obs = clockDamage(ui)(gs.updateIn([currentplayer(gs), 'clock'], clock => {
+		return clock.unshift(basecard(),basecard(),basecard(),basecard(),basecard(),basecard(),basecard(),basecard(),basecard())
+	    }))
+	    obs.subscribe(
+		gs => {
+		expect(gs).to.not.be.null
+		validatefield(gs)
+		    
+		},
+		err => done(err),
+		_ => done())
+				  
+	    
+	})
+	
     })
     
     it('test reset', function() {
@@ -156,6 +202,28 @@ describe('utils test', function() {
 
     it('test validatefield', function() {
 	let [gs, c] = init('main', 0)
+	validatefield(gs)
+
+	try {
+	    validatefield(gs.updateIn([currentplayer(gs), 'deck'], _=> undefined))
+	    expect(false).to.be.true
+	}
+	catch(e) {
+	}
+	try {
+	    validatefield(gs.updateIn([currentplayer(gs), 'deck'], _=> Map()))
+	    expect(false).to.be.true
+	}
+	catch(e) {
+	}
+	try {
+	    validatefield(gs.updateIn([currentplayer(gs), 'deck'], deck => deck.push("")))
+	    expect(false).to.be.true
+	}
+	catch(e) {
+	}
+
+	validatefield(gs.updateIn([currentplayer(gs), 'deck'], deck => deck.push(basecard())))
     })
     
     it('test undefined', function() {

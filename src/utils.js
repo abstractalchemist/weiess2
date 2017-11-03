@@ -3,6 +3,8 @@ import { Observable } from 'rxjs'
 const { of } = Observable
 import GamePositions, { currentplayer, inactiveplayer } from './game_pos'
 import { refresh } from './deck_utils'
+import React from 'react'
+import CardSelector from './cardselector'
 // returns true if c is a card
 const iscard = function(c) {
     return c !== undefined && isImmutable(c) && c.has('active') && c.has('info');
@@ -176,12 +178,14 @@ const clockDamage = (ui, player) => {
 	let clock = G.clock(gs)
 	if(clock.size >= 7) {
 	    let selectable = clock.slice(clock.size - 7)
-	    let rem = clock(0, clock.size - 7)
+	    let rem = clock.slice(0, clock.size - 7)
 	    return ui.prompt(func => {
 		return {
 		    prompt:  <CardSelector onselect={
 			id => {
-
+			    if(!id)
+				throw new Error("id cannot be undefined")
+			    console.log(`clicked on ${id}`)
 			    let index = selectable.findIndex(c => id === c.getIn(['info','id']))
 			    let card = selectable.get(index)
 			    func(gs.updateIn(GamePositions.level(gs, player),  level => level.insert(0, card))
