@@ -3,7 +3,7 @@ import { clearactions, hasavailableactions } from '../src/utils'
 import GameStateFactory from '../src/game_state'
 import { basecard, basestack } from './utils'
 import GamePositions, { currentplayer, inactiveplayer } from '../src/game_pos'
-import { fromJS } from 'immutable'
+import { fromJS, List } from 'immutable'
 
 describe('utils test', function() {
     it('init', function() {
@@ -50,6 +50,14 @@ describe('utils test', function() {
 	obj = clearactions(obj)
 	expect(obj).to.not.be.null;
 	expect(hasavailableactions(obj)).to.be.false;
+    })
+
+    it('test undefined', function() {
+	const l = List()
+	console.log(l.concat(List()))
+	l.concat(List().push(undefined)).forEach(T => {
+	    console.log(T)
+	})
     })
 
 })

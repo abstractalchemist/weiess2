@@ -557,7 +557,7 @@ const ControllerFactory = function(game_state) {
 		.mergeMap(updateUI(GamePhases.attack.start()))
 		.mergeMap(gs => {
 		    _gs = gs;
-		    const a = AttackPhase(gs, _ui)
+		    const a = AttackPhase(gs, _ui, this)
 		    return a.resolve()
 			.mergeMap(gs => {
 			    _gs = gs

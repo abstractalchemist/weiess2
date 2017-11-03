@@ -2,7 +2,7 @@ import { fromJS, isImmutable, List, Map } from 'immutable'
 import { Observable } from 'rxjs'
 const { of } = Observable
 import GamePositions, { currentplayer, inactiveplayer } from './game_pos'
-
+import { refresh } from './deck_utils'
 // returns true if c is a card
 const iscard = function(c) {
     return c !== undefined && isImmutable(c) && c.has('active') && c.has('info');
@@ -46,6 +46,14 @@ const findopenpositions = function(gs) {
     return positions;
 }
 
+const checkundefined = (l, field) => {
+    if(!l)
+	console.log(`${field} is undefined`)
+    if(l.find(T => T === undefined)) {
+	console.log(`${field} contains undefined`)
+    }
+}
+
 const implcollectplayercards = function(player, gs) {
     //    console.log(`looking at ${player} cards`)
     let activecards = List()
@@ -59,13 +67,25 @@ const implcollectplayercards = function(player, gs) {
     pushCard('center','right')
     pushCard('back','left')
     pushCard('back','right')
-    return activecards.concat(G.level(gs, player))
-	.concat(G.climax(gs, player))
-	.concat(G.clock(gs, player))
-	.concat(G.memory(gs, player))
-	.concat(G.hand(gs, player))
-	.concat(G.deck(gs, player))
-	.concat(G.waiting_room(gs, player))
+    checkundefined(activecards, 'stage cards')
+    let level, climax, clock, hand, deck, waiting_room, memory;
+    let cards = activecards.concat(level = G.level(gs, player))
+	.concat(climax = G.climax(gs, player))
+	.concat(clock = G.clock(gs, player))
+	.concat(memory = G.memory(gs, player))
+	.concat(hand = G.hand(gs, player))
+	.concat(deck = G.deck(gs, player))
+	.concat(waiting_room = G.waiting_room(gs, player))
+    
+    checkundefined(level, 'level')
+    checkundefined(climax, 'climax')
+    checkundefined(clock, 'clock')
+    checkundefined(hand, 'hand')
+    checkundefined(waiting_room, 'waiting_room')
+    checkundefined(memory, 'memory')
+    checkundefined(cards, 'allcards')
+    console.log(`size of cards ${cards.size}`)
+    return cards;
 }
 
 
@@ -278,8 +298,8 @@ const dealdamage = function(count, gs, player, cancelable = true) {
     let damage =[];
     let deck = G.deck(gs)
     while(i++ < count && !canceled) {
-	let dmg = deck.first();
-	deck = deck.shift()
+	let dmg = deck.first()
+	deck = refresh(gs.updateIn([player, 'deck'], deck => deck.shift()), player)
 	if(cancelable && isclimax(dmg)) {
 	    canceled = true;
 	}
@@ -384,13 +404,13 @@ function reset(gs) {
 // gs - gamestate
 // evt - the event that occurred
 const applyActions = (gs, evt, ui, next) => {
-    let activecards = collectactivateablecards(gs)
+    let activecards = collectactivateablecards(gs).filter(T => T !== undefined)
     activecards.forEach( T => {
 	let f = undefined;
 
 	if(Map.isMap(T) && (f =  T.getIn(['passiveactions'])))
 	    gs = f(gs, evt)
-	else if(!T.getIn)
+	else if(!T || !T.getIn)
 	    console.log(` T is ${T}`)
 	    
 	return true;
@@ -453,16 +473,16 @@ const applyActions = (gs, evt, ui, next) => {
 	    
 	})
 	.updateIn([currentplayer(gs), 'level'], level => {
-	    return level.map(checkavailableactions(gs))
+	    return level.filter(T => T !== undefined).map(checkavailableactions(gs))
 	})
 	.updateIn([currentplayer(gs), 'clock'], clock => {
-	    return clock.map(checkavailableactions(gs))
+	    return clock.filter(T => T !== undefined).map(checkavailableactions(gs))
 	})
 	.updateIn([currentplayer(gs), 'memory'], memory => {
-	    return memory.map(checkavailableactions(gs))
+	    return memory.filter(T => T !== undefined).map(checkavailableactions(gs))
 	})
 	.updateIn([currentplayer(gs), 'waiting_room'], waiting_room => {
-	    return waiting_room.map(checkavailableactions(gs))
+	    return waiting_room.filter(T => T !== undefined).map(checkavailableactions(gs))
 	})
     
     

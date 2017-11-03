@@ -1,12 +1,14 @@
 import { Observable } from 'rxjs'
 import { applyActions, clearactions, hasavailableactions, collectactivateablecards, isclimax, inactiveplayer, currentplayer, G, findcardonstage, findstageposition, iscard, dealdamage, clockDamage } from './utils'
-import { refresh, applyrefreshdamage, searchwaitingroom } from './deck_utils'
+import { drawfromdeck, refresh, applyrefreshdamage, searchwaitingroom } from './deck_utils'
 import StageSelector from './stageselector'
 //import DeckSelector from './deckselector'
 const { of, create } = Observable;
-import { fromJS, List } from 'immutable'
+import { Map, fromJS, List } from 'immutable'
 import { Triggers, Status } from './battle_const'
-const AttackPhase = function(gs, ui) {
+import { PoolFunction, DrawFunction, TreasureFunction } from './triggerfunctions'
+
+const AttackPhase = function(gs, ui, controller) {
 
 //    let _attacking_card = undefined
     let _pos = undefined;
@@ -70,11 +72,11 @@ const AttackPhase = function(gs, ui) {
 						  .updateIn([currentplayer(gs), 'stage'].concat(pos1),
 							    cards =>
 							    cards.update(0,
-									 card => card.updateIn(['status'], _ => Status.rest()).updateIn(['soul'], s => {
+									 card => card.updateIn(['status'], _ => Status.rest()).updateIn(['active','soul'], s => {
 									     let o = gs.getIn([inactiveplayer(gs), 'stage'].concat(oppos))
 									     if(List.isList(o) && iscard(o = o.first())) {
 										 
-										 let level = o.getIn(['level'])
+										 let level = o.getIn(['active','level'])
 										 if(typeof level === 'function')
 										     level = level(gs)
 										 return gs => {
@@ -123,9 +125,12 @@ const AttackPhase = function(gs, ui) {
 	    
 	}
 	// here is where things like 'disallow side attacks' should be implemented
+//	let T = collectactivateablecards(gs);
+
 	collectactivateablecards(gs).forEach( T => {
 	    let f = undefined;
-	    if(f = T.getIn(['passiveactions'])) {
+	    
+	    if(Map.isMap(T) && (f = T.getIn(['passiveactions']))) {
 		gs = f(gs,evt)
 	    }
 	})
@@ -134,31 +139,6 @@ const AttackPhase = function(gs, ui) {
 
     }
 
-    const fromdeckblind = (dest, desc) => {
-	return gs => {
-  	    return gs.updateIn([currentplayer(gs), 'deck'], deck => {
-		return deck.update(0, card => {
-		    return card.getupdateIn(['actions'], _ => {
-			return fromJS([
-			    {
-				exec() {
-				    return of(gs)
-					.map(gs => {
-					    gs = drawfromdeck(1, 'hand', gs)
-					    return gs.updateIn(['stock'], stock => stock.push(card))
-					    // let deck = G.deck(gs)
-					    // let card = deck.first()
-					    // return refresh(gs.updateIn([currentplayer(gs),'deck'], deck => deck.shift())).updateIn([currentplayer(gs), dest], stock => stock.push(card))
-					})
-				},
-				desc:desc
-			    }
-			])
-		    })
-		})
-	    })
-	}
-    }
 
     const addattackoptions = function(gs) {
 	let stage = G.stage(gs)
@@ -184,10 +164,12 @@ const AttackPhase = function(gs, ui) {
 		o.next(gs)
 		o.complete()
 	    }))
-//	    console.log(`in update, hasavailableactions ${hasavailableactions(gs1)}`)
-	    
+	    //	    console.log(`in update, hasavailableactions ${hasavailableactions(gs1)}`)
+	    if(controller)
+		controller.updategamestate(gs1)
 	    return create(obs => {
-//		console.log(`in update, hasavailableactions ${hasavailableactions(gs1)}`)
+		//		console.log(`in update, hasavailableactions ${hasavailableactions(gs1)}`)
+		
 		_ui.updateUI(applyActions(gs1, evt, _ui, f(obs)), obs, evt, ignoreprompt)
 	    })
 	}
@@ -248,7 +230,7 @@ const AttackPhase = function(gs, ui) {
 		    const is_stage_resting = stack => {
 			let c;
 			if(List.isList(stack) && stack.size > 0 && iscard(c = stack.first())) {
-			    return Status.stand(c)
+			    return !Status.stand(c)
 			}
 			return true
 		    }
@@ -261,7 +243,10 @@ const AttackPhase = function(gs, ui) {
 			
 			return this.resolve()
 		    }
-		    return of(_gs)
+		    else {
+			
+			return of(_gs)
+		    }
 		})
 		.mergeMap(updateUI({evt:"attack_encore"}, true))
 		.mergeMap(gs => this.encore(gs))
@@ -282,6 +267,9 @@ const AttackPhase = function(gs, ui) {
 	    let trigger_card = deck.first();
 	    gs = refresh(gs.updateIn([currentplayer(gs), 'deck'], deck => deck.shift()))
 	    let prompt = undefined;
+	    const stock_trigger = gs => {
+		return gs.updateIn([currentplayer(gs), 'stock'], stock => stock.unshift(trigger_card))
+	    }
 	    if(iscard(trigger_card)) {
 		let trigger_action = trigger_card.getIn(['info', 'trigger_action'])
 		switch(trigger_action) {
@@ -293,6 +281,7 @@ const AttackPhase = function(gs, ui) {
 			    return 1 + soul
 			}
 		    })
+		    gs = stock_trigger(gs)
 		}
 		    break;
 		case Triggers.soul2 : {
@@ -303,53 +292,107 @@ const AttackPhase = function(gs, ui) {
 			    return 2 + soul
 			}
 		    })
+		    gs = stock_trigger(gs)
 
 		}
 		    break;
 		case Triggers.pool : {
-		    gs = fromdeckblind('stock', 'Pool')(gs)
+		    //gs = fromdeckblind('stock', 'Pool')(gs)
+		    prompt = ui.prompt(func => {
+			return {
+			    prompt:<PoolFunction onok={
+				evt => {
+				    
+				    func(drawfromdeck(1, 'stock', gs))
+				}
+			    }
+			    oncancel={
+				evt => {
+				    func(gs)
+				}
+			    }/>,
+			    id:'pool-function'
+			}
+		    })
+		    gs = stock_trigger(gs)
 		}
 		    break;
 		case Triggers.salvage : {
-		    prompt = ui.prompt(searchwaitingroom)
+		    prompt = ui.prompt(searchwaitingroom);
+		    gs = stock_trigger(gs)
 
 		}
 		    break;
 		case Triggers.draw : {
-		    gs = fromdeckblind('hand', 'Draw')(gs)
+		    prompt = ui.prompt(func => {
+			return {
+			    id:'draw-function',
+			    prompt:<DrawFunction onok={
+				evet => {
+				    func(drawfromdeck(1,'hand',gs))
+				}
+			    }
+			    oncancel= {
+				evt => {
+				    func(gs)
+				}
+			    }/>
+			}
+		    })
+		    gs = stock_trigger(gs)
+		    
 		}
 		    break;
 		case Triggers.shot :{
-		    
+		    gs = stock_trigger(gs)
 		}
 		    break;
 		case Triggers.treasure: {
-		    
-		    gs = gs.updateIn([currentplayer(gs), 'hand'], hand => hand.push(trigger_card))
-			.updateIn([currentplayer(gs), 'deck'], deck => {
-			    if(deck.size > 0) {
-				return deck.update(0, card => {
-				    return card.updateIn(['actions'], _ => {
-					return fromJS([
-					    {
-						exec() {
-						    let deck = G.deck(gs)
-						    let card = deck.first()
-						    return  of(refresh(gs.updateIn([currentplayer(gs), 'deck'], deck => deck.shift()))
-							       .updateIn([currentplayer(gs), 'stock'], stock => stock.push(card)))
-						    
-						},
-						desc: "Treasure"
-					    }
-					])
-				    })
-				})
+		    prompt = ui.prompt(func => {
+			return {
+			    prompt:<TreasureFunction onok={
+				evt => {
+				    
+				    gs = drawfromdeck(1, 'stock', gs)
+
+				    func(gs = gs.updateIn([currentplayer(gs), 'hand'], hand => hand.push(trigger_card)))
+				}
 			    }
-			    return deck;
-			})
+			    oncancel={
+				evt => {
+				    func(gs)
+				}
+			    }/>,
+			    id:'treasure-function'
+			}
+		    });
+		    
+		    // gs = gs.updateIn([currentplayer(gs), 'hand'], hand => hand.push(trigger_card))
+		    // 	.updateIn([currentplayer(gs), 'deck'], deck => {
+		    // 	    if(deck.size > 0) {
+		    // 		return deck.update(0, card => {
+		    // 		    return card.updateIn(['actions'], _ => {
+		    // 			return fromJS([
+		    // 			    {
+		    // 				exec() {
+		    // 				    let deck = G.deck(gs)
+		    // 				    let card = deck.first()
+		    // 				    return  of(refresh(gs.updateIn([currentplayer(gs), 'deck'], deck => deck.shift()))
+		    // 					       .updateIn([currentplayer(gs), 'stock'], stock => stock.push(card)))
+						    
+		    // 				},
+		    // 				desc: "Treasure"
+		    // 			    }
+		    // 			])
+		    // 		    })
+		    // 		})
+		    // 	    }
+		    // 	    return deck;
+		    // 	})
 		}
 		    break;
 		default:
+		    gs = stock_trigger(gs)
 		    break;
 		}
 		
@@ -357,7 +400,9 @@ const AttackPhase = function(gs, ui) {
 		    
 	    }
 
-//	    console.log(`looking at ${pos}`)
+	    //	    console.log(`looking at ${pos}`)
+	    if(prompt)
+		return prompt;
 	    if(_pos)
 		return of(gs.updateIn([currentplayer(gs), 'stage'].concat(_pos), cards => cards.update(0, _ => attacking_card)))
 	    return of(gs)
@@ -541,7 +586,7 @@ const AttackPhase = function(gs, ui) {
 		   checkisreversed(gs, o, ['center', 'right']) || 
 		   checkisreversed(gs, o, ['back', 'left']) ||
 		   checkisreversed(gs, o, ['back', 'right'])) {
-		    return this.encore(gs, attacking_card)
+		    return this.encore(gs)
 		}
 		return of(gs)
 	    }

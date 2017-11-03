@@ -147,6 +147,12 @@ class Main extends React.Component {
 								  level = level.push(fromJS(avail[Math.floor(Math.random() * avail.length)]))
 							      return level
 							  })
+							  .updateIn([player, 'deck'], deck => {
+							      for(let i = 0; i < 10; ++i) {
+								  deck = deck.push(fromJS(avail[Math.floor(Math.random() * avail.length)]))
+							      }
+							      return deck
+							  })
 							  .updateIn([player, 'stage', 'center','left'], card => card.push(fromJS(avail[Math.floor(Math.random() * avail.length)])))
 							  .updateIn([player, 'stage', 'center','middle'], card => card.push(fromJS(avail[Math.floor(Math.random() * avail.length)])))
 							  .updateIn([player, 'stage', 'center','right'], card => card.push(fromJS(avail[Math.floor(Math.random() * avail.length)])))
