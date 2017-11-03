@@ -4,7 +4,7 @@ import StageSelector from './stageselector'
 const { of, create } = Observable;
 import { isImmutable, List, fromJS } from 'immutable'
 import GamePositions, { currentplayer, inactiveplayer } from './game_pos'
-import { applyActions, reset, shuffle, debug, iscard, findopenpositions, collectactivateablecards, isevent, isclimax, canplay, payment, G, clockDamage, clearactions, hasavailableactions, validatefield } from './utils'
+import { applyActions, reset, shuffle, debug, iscard, findopenpositions, collectactivateablecards, isevent, isclimax, canplay, payment, G, clockDamage, clearactions, hasavailableactions, validatefield, updateUIFactory } from './utils'
 import { refresh, applyrefreshdamage, searchdeck, drawfromdeck } from './deck_utils'
 import AttackPhase from './attack_phase'
 import GamePhases from './game_phases'
@@ -55,22 +55,6 @@ const ControllerFactory = function(game_state) {
     let _ui = undefined;
     let _gs = game_state
 
-    
-    // update ui with the given event
-    // evt - the event that occurred
-    // func - a function to be executed by any activated action; or force the stream to continue
-    const updateUI= (evt, ignoreprompt, func) => {
-	return gs => {
-	    let f = func || (o => (gs => {
-		o.next(gs)
-		o.complete()
-	    }))
-	    
-	    return create(obs => {
-		_ui.updateUI(applyActions(gs,evt,_ui, f(obs)), obs, evt, ignoreprompt)
-	    })
-	}
-    }
 
 
 
@@ -108,10 +92,9 @@ const ControllerFactory = function(game_state) {
 
     }
 
+    let updateUI;
     
     return {
-
-	updateUI:updateUI,
 
 
 	// initializes a game; assumes 50 cards in the deck
@@ -177,6 +160,7 @@ const ControllerFactory = function(game_state) {
 	// function to regster the ui to call back to
 	registerUI(ui) {
 	    _ui = ui;
+	    updateUI = updateUIFactory(_ui)
 	},
 
 

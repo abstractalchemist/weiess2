@@ -1,10 +1,12 @@
 import { fromJS, isImmutable, List, Map } from 'immutable'
 import { Observable } from 'rxjs'
-const { of } = Observable
+const { of, create } = Observable
 import GamePositions, { currentplayer, inactiveplayer } from './game_pos'
 import { refresh } from './deck_utils'
 import React from 'react'
 import CardSelector from './cardselector'
+
+
 // returns true if c is a card
 const iscard = function(c) {
     return c !== undefined && isImmutable(c) && c.has('active') && c.has('info');
@@ -108,7 +110,7 @@ const implcollectplayercards = function(player, gs) {
     checkundefined(waiting_room, 'waiting_room')
     checkundefined(memory, 'memory')
     checkundefined(cards, 'allcards')
-//    console.log(`size of cards ${cards.size}`)
+    //    console.log(`size of cards ${cards.size}`)
     return cards;
 }
 
@@ -447,7 +449,7 @@ const applyActions = (gs, evt, ui, next) => {
 	    gs = f(gs, evt)
 	else if(!T || !T.getIn)
 	    console.log(` T is ${T}`)
-	    
+	
 	return true;
     })
 
@@ -523,4 +525,28 @@ const applyActions = (gs, evt, ui, next) => {
     
 }
 
-export { applyActions ,debug, iscard, findopenpositions, collectactivateablecards,  isevent, isclimax, canplay, payment, findcardonstage, findstageposition, G, dealdamage, clockDamage, hasavailableactions, clearactions, reset, validatefield }
+
+
+// update ui with the given event
+// evt - the event that occurred
+// func - a function to be executed by any activated action; or force the stream to continue
+const updateUIFactory = function(ui) {
+//    console.log(`*********************** ui ${ui} ****************************`)
+    return function(evt, ignoreprompt, func) {
+//	console.log(`*********************** ui ${ui}, evt ${evt} ****************************`)
+	return function(gs)  {
+	    console.log(`gs? ${gs}`)
+	    let f = func || (o => (gs => {
+		console.log(`gs? ${gs}`)
+		o.next(gs)
+		o.complete()
+	    }))
+	    console.log(`gs? ${gs}`)
+	    return create(obs => {
+		ui.updateUI(applyActions(gs,evt, ui, f(obs)), obs, evt, ignoreprompt)
+	    })
+	}
+    }
+}
+
+export { applyActions ,debug, iscard, findopenpositions, collectactivateablecards,  isevent, isclimax, canplay, payment, findcardonstage, findstageposition, G, dealdamage, clockDamage, hasavailableactions, clearactions, reset, validatefield, updateUIFactory }

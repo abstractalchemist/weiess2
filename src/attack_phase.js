@@ -1,5 +1,5 @@
 import { Observable } from 'rxjs'
-import { applyActions, clearactions, hasavailableactions, collectactivateablecards, isclimax, G, findcardonstage, findstageposition, iscard, dealdamage, clockDamage } from './utils'
+import { updateUIFactory, applyActions, clearactions, hasavailableactions, collectactivateablecards, isclimax, G, findcardonstage, findstageposition, iscard, dealdamage, clockDamage } from './utils'
 import { drawfromdeck, refresh, applyrefreshdamage, searchwaitingroom } from './deck_utils'
 import { inactiveplayer, currentplayer } from './game_pos'
 import StageSelector from './stageselector'
@@ -169,7 +169,7 @@ const AttackPhase = function(gs, ui, controller) {
 	    if(controller)
 		controller.updategamestate(gs1)
 	    return create(obs => {
-		//		console.log(`in update, hasavailableactions ${hasavailableactions(gs1)}`)
+ 		//		console.log(`in update, hasavailableactions ${hasavailableactions(gs1)}`)
 		
 		_ui.updateUI(applyActions(gs1, evt, _ui, f(obs)), obs, evt, ignoreprompt)
 	    })
