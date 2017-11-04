@@ -145,15 +145,24 @@ describe('utils test', function() {
     
     it('test dealdamage', function() {
 	let [gs, c] = init('main', 0)
-	gs = dealdamage(3, gs.updateIn([currentplayer(gs), 'deck'], deck => {
-	    return deck.unshift(basecard(1000), basecard(1000), basecard(1000))
+	let deck_base;
+	
+	/// deals damage to the inactive player
+	gs = dealdamage(3, gs.updateIn([inactiveplayer(gs), 'deck'], deck => {
+	    return deck_base = deck.unshift(basecard(1000), basecard(1000), basecard(1000))
 	}))
 	expect(gs.getIn([inactiveplayer(gs), 'clock']).size).to.equal(3)
+	expect(gs.getIn([inactiveplayer(gs), 'deck']).size).to.equal(deck_base.size - 3)
+	
 	validatefield(gs)
+
+	// as a reversed check, inactive deals damage to deck
 	gs = dealdamage(3, gs.updateIn([inactiveplayer(gs), 'deck'], deck => {
-	    return deck.unshift(basecard(1000), basecard(1000), basecard(1000))
+	    return deck_base = deck.unshift(basecard(1000), basecard(1000), basecard(1000))
 	}), inactiveplayer(gs))
 	expect(gs.getIn([currentplayer(gs), 'clock']).size).to.equal(3)
+	expect(gs.getIn([currentplayer(gs), 'deck']).size).to.equal(deck_base.size - 3)
+	
 	validatefield(gs)
 	
     })
@@ -226,7 +235,7 @@ describe('utils test', function() {
 	validatefield(gs.updateIn([currentplayer(gs), 'deck'], deck => deck.push(basecard())))
     })
     
-    it('test undefined', function() {
+    xit('test undefined', function() {
 	const l = List()
 	console.log(l.concat(List()))
 	l.concat(List().push(undefined)).forEach(T => {

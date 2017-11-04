@@ -170,7 +170,9 @@ const isevent = function(card) {
 
 // climax cards have no level and no power
 const isclimax = function(card) {
-    return iscard(card) && (card.getIn(['info','power']) === undefined || card.getIn(['info','power']) === 0) && (card.getIn(['active','level']) === undefined || card.getIn(['active','level']) === 0)
+    return iscard(card) && (card.getIn(['info','power']) === undefined || card.getIn(['info','power']) === 0 )
+	&& (card.getIn(['info','level']) === undefined || card.getIn(['info','level']) === 0 )
+	&& (card.getIn(['info','cost']) === undefined || card.getIn(['info','cost']) === 0 )
 }
 
 const clockDamage = (ui, player) => {
@@ -187,7 +189,7 @@ const clockDamage = (ui, player) => {
 			id => {
 			    if(!id)
 				throw new Error("id cannot be undefined")
-			    console.log(`clicked on ${id}`)
+//			    console.log(`clicked on ${id}`)
 			    let index = selectable.findIndex(c => id === c.getIn(['info','id']))
 			    let card = selectable.get(index)
 			    func(gs.updateIn(GamePositions.level(gs, player),  level => level.insert(0, card))
@@ -328,13 +330,13 @@ const dealdamage = function(count, gs, player, cancelable = true) {
     let canceled = false;
     let i = 0;
     let damage =[];
-    let deck = G.deck(gs)
+    let deck = G.deck(gs, playerdest)
     while(i++ < count && !canceled) {
 	let dmg = deck.first()
-	gs = refresh(gs.updateIn([player, 'deck'], deck => deck.shift()), player)
-	deck = G.deck(gs)
+	gs = refresh(gs.updateIn([playerdest, 'deck'], deck => deck.shift()), playerdest)
+	deck = G.deck(gs, playerdest)
 	if(cancelable && isclimax(dmg)) {
-
+//	    console.log('damage canceled')
 	    canceled = true;
 	}
 	damage.push(dmg)

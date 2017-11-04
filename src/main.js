@@ -11,6 +11,7 @@ import { hasavailableactions } from './utils'
 import { currentplayer, inactiveplayer } from './game_pos'
 import { fromJS } from 'immutable'
 import GamePhases from './game_phases'
+import DeckStore from './deck_store'
 
 function TextField({id, label, value, changehandler}) {
 
@@ -52,20 +53,20 @@ class Main extends React.Component {
 	
 	this.setState({game_state:gs, obs, evt})
 	if(obs) {
-	    console.log(`observing ${evt.evt}`)
+//	    console.log(`observing ${evt.evt}`)
 	    let a, b;
 	    if(!(a = hasavailableactions(gs)) && (ignoreprompts || !(b = this.state.prompt))) {
-		console.log(`no available actions, leaving`)
+//		console.log(`no available actions, leaving`)
 		obs.next(gs)
 		obs.complete()
 		//		setTimeout(this.turn.bind(this), 2000)
 	    }
 	    else {
-		console.log(`actions? ${a}, prompts ${b}`)
+//		console.log(`actions? ${a}, prompts ${b}`)
 	    }
 	}
 	else {
-	    console.log(`no obs, evt ${evt}`)
+//	    console.log(`no obs, evt ${evt}`)
 	}
     }
 
@@ -106,7 +107,88 @@ class Main extends React.Component {
     }
 
     loadDecks() {
-	this.setState({load_mode:'load_decks'})
+	DeckStore.getdecks()
+	    .subscribe(
+		decks => {
+		    this.setState({load_mode:'load_decks', prompt: {
+			prompt: (<dialog id='deck-loader' className="mdl-dialog">
+				 <div className="mdl-dialog__content">
+				 <table className="mdl-data-table mdl-js-data-table mdl-data-table--selectable mdl-shadow--2dp">
+				 <thead>
+				 <tr className="mdl-data-table__cell--non-numeric">
+				 <th>DeckName</th>
+				 </tr>
+				 </thead>
+				 <tbody>
+				 {( _ => {
+				     if(decks && decks.length) {
+					 return decks.map(d => {
+					     return (<tr data-id={d.id}>
+						     <td>{d.label}</td>
+						     </tr>)
+					 })
+				     }
+				 })()
+				 }
+				 </tbody>
+				 </table>
+				 </div>
+				 <div className="mdl-dialog__actions">
+				 <button className="mdl-button mdl-js-button" onClick={
+				     _ => {
+					 let selected = document.querySelectorAll('#deck-loader table tr.is-selected')
+					 if(selected) {
+					     this.closeCurrentPrompt()
+					     if(selected.length !== 2) {
+						 alert("Please select two decks")
+						 return;
+					     }
+					     
+					     let deck1;
+					     Deck.getdeck(selected.item(0).dataset.id)
+						 .mergeMap(({id}) => Card.getcard(id))
+						 .toArray()
+						 .do(deck => {
+						     deck1 = deck;
+						 })
+						 .mergeMap(_ => {
+						     Deck.getdeck(selected.item(1).dataset.id)
+						 })
+						 .mergeMap(({id}) => Card.getcard(id))
+						 .toArray()
+						 .subscribe(
+						     deck => {
+							 this.props.controller.updategamestate(GameStateFactory()
+											       .updateIn(['player1', 'deck'], _ => fromJS(deck1))
+											       .updateIn(['player2', 'deck'], _ => fromJS(deck2)))
+						     },
+						     err => {
+							 throw new Error(err)
+						     },
+						     _ => {})
+					     
+					 }
+				     }
+				 }>
+				 Load
+				 </button>
+				 <button className="mdl-button mdl-js-button" onClick= {
+				     _ => {
+					 this.closeCurrentPrompt()
+				     }
+				 }>
+				 Cancel
+				 </button>
+				 </div>
+				 </dialog> ),
+			id:'deck-loader'
+		    }})
+		},
+		err => {
+		    throw new Error(err)
+		},
+		_ => {})
+	
     }
 
     selectRandomCards() {
@@ -337,7 +419,7 @@ class Main extends React.Component {
 			    evt => {
 				let selected = document.querySelector('#add-to-field table tr.is-selected');
 				if(selected) {
-				    console.log(selected.id)
+//				    console.log(selected.id)
 				    this.addCardToField(selected.id, target)
 				}
 				close()
@@ -396,7 +478,7 @@ class Main extends React.Component {
 	    field = [field]
 	let buffer = []
 	let gs = this.state.game_state;
-	console.log(`${field}ing from ${this.state.cardset}`)
+//	console.log(`${field}ing from ${this.state.cardset}`)
 	CardStore.getcardsfromset(this.state.cardset)
 	    .map(CardStore.internalmapper)
 	    .toArray()
@@ -407,7 +489,7 @@ class Main extends React.Component {
 		    while(i++ < size) {
 			let r = Math.floor(Math.random() * data.size)
 			let card = data.get(r)
-			console.log(`pushing ${card}`)
+//			console.log(`pushing ${card}`)
 			gs = gs.updateIn([currentplayer(gs)], f => {
 			    return f.updateIn(field, deck => deck.push(card))
 			})
@@ -423,7 +505,7 @@ class Main extends React.Component {
     }
     
     stockItNow() {
-	console.log(`stocking from ${this.state.cardset}`)
+//	console.log(`stocking from ${this.state.cardset}`)
 	this.fillIt('stock', this.state.stock_it)
 	this.setState({stock_it:0})
     }

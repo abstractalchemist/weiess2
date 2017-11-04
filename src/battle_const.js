@@ -1,4 +1,4 @@
-import { Map } from 'immutable'
+import { Map, List } from 'immutable'
 
 const Triggers = {
     soul2: "soul2",
@@ -16,6 +16,8 @@ const Status = {
     stand(arg) {
 	if(Map.isMap(arg))
 	    return arg.getIn(['status']) === 'stand'
+	if(List.isList(arg))
+	    return arg.size > 0 && arg.first().getIn(['status']) === 'stand'
 	else if (arg)
 	    return arg.status === 'stand'
 	return 'stand'
@@ -23,6 +25,9 @@ const Status = {
     rest(arg) {
 	if(Map.isMap(arg))
 	    return arg.getIn(['status']) === 'rest'
+	if(List.isList(arg))
+	    return arg.size > 0 && arg.first().getIn(['status']) === 'rest'
+
 	else if(arg)
 	    return arg.status === 'rest'
 	return 'rest'
@@ -31,6 +36,9 @@ const Status = {
     reversed(arg) {
 	if(Map.isMap(arg))
 	    return arg.getIn(['status']) === 'reversed'
+	if(List.isList(arg))
+	    return arg.size > 0 && arg.first().getIn(['status']) === 'reversed'
+	
 	else if(arg)
 	    return arg.status === 'reversed'
 	return 'reversed'

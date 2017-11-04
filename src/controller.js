@@ -352,13 +352,13 @@ const ControllerFactory = function(game_state) {
 	// this is called recursively for after each main turn
 	main() {
 
-	    console.log('running main')
+//	    console.log('running main')
 	    let moveCardActions = (srcstage, srcpos) => {
 		return gs => {
 		    //		    console.log(`adding move phase to ${srcstage} => ${srcpos} with gs ${gs}`)
 		    return gs.updateIn([currentplayer(gs), 'stage', srcstage, srcpos], cards => cards.update(0, card => {
 			if(iscard(card)) {
-			    console.log(`adding move to ${card.getIn(['info','id'])}`)
+//			    console.log(`adding move to ${card.getIn(['info','id'])}`)
 			    return card.updateIn(['actions'], _ => fromJS([
 				{
 				    exec() {
@@ -477,7 +477,7 @@ const ControllerFactory = function(game_state) {
 	    return of(GamePhases.main.set(_gs))
 
 		.map(clearactions)
-	    	.do(_ => console.log('setting main'))
+//	    	.do(_ => console.log('setting main'))
 		.mergeMap(updateUI(GamePhases.main.start(), true))
 		.do(gs => _gs = gs)
 		.map(moveCardActions('center','left'))

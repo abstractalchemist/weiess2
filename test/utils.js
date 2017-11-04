@@ -65,7 +65,7 @@ function createprompt(simulateit = function(obj) {
 		obs.complete()
 	    })
 	    const obj = mount(promptUI)
-	    console.log('clicking.....')
+//	    console.log('clicking.....')
 	    simulateit(obj)
 	})
     }

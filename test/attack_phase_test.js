@@ -12,7 +12,7 @@ const populate_stage = (gs, trigger_action = 'come_back') => {
 	.updateIn([currentplayer(gs), 'stage', 'center'], center => {
 	    return center
 		.updateIn(['left'], left => {
-		    return basestack(1000).update(0, c => c.updateIn(['status'], _ => Status.stand()))
+		    return basestack(1000).update(0, c => c.updateIn(['status'], _ => Status.stand()).updateIn(['active','soul'], _ => 1))
 		})
 		.updateIn(['middle'], middle => {
 		    return basestack(1000).update(0, c => c.updateIn(['status'], _ => Status.stand()))
@@ -41,7 +41,7 @@ const populate_stage = (gs, trigger_action = 'come_back') => {
 		    return basestack(500).update(0, c => c.updateIn(['status'], _ => Status.stand()))
 		})
 		.updateIn(['right'], right => {
-		    return basestack(2000).update(0, c => c.updateIn(['status'], _ => Status.stand()))
+		    return basestack(2000).update(0, c => c.updateIn(['status'], _ => Status.stand()).updateIn(['active','soul'], _ => 1))
 		})
 	    
 	})
@@ -100,8 +100,9 @@ describe('attack_phase', function() {
 		    done(err)
 		},
 		_ => {
-		    expect(a.attack_pos()[0]).to.equal('center')
-		    expect(a.attack_pos()[1]).to.equal('left')
+		    expect(a.pos()[0]).to.equal('center')
+		    expect(a.pos()[1]).to.equal('left')
+		    expect(Status.rest(gs.getIn([currentplayer(gs), 'stage','center','left']))).to.be.true
 		    done()
 		})
     })
@@ -132,7 +133,7 @@ describe('attack_phase', function() {
 	})
 	const a = AttackPhase(gs = populate_stage(gs, Triggers.salvage), ui)
 	expect(a).to.not.be.null;
-	a.setpos(['center','left'])
+	a.pos(['center','left'])
 	a.trigger(gs)
 	    .mergeMap(a.updateUI({}))
 	    .subscribe(
@@ -176,7 +177,7 @@ describe('attack_phase', function() {
 	})
 	const a = AttackPhase(gs = populate_stage(gs, Triggers.treasure), ui)
 	expect(a).to.not.be.null;
-	a.setpos(['center','left'])
+	a.pos(['center','left'])
 	a.trigger(gs)
 	    .mergeMap(a.updateUI({}))
 	    .subscribe(
@@ -212,7 +213,7 @@ describe('attack_phase', function() {
 	    }
 	})
 	const a = AttackPhase(gs = populate_stage(gs), ui)
-	a.setpos(['center','left'])
+	a.pos(['center','left'])
 	expect(a).to.not.be.null;
 	a.counter_attack(gs)
 	    .mergeMap(a.updateUI({}))
@@ -243,16 +244,27 @@ describe('attack_phase', function() {
 	})
 	const a = AttackPhase(gs = populate_stage(gs), ui)
 	expect(a).to.not.be.null;
-	a.setpos(['center','left'])
-	a.damage(gs)
+	a.pos(['center','left'])
+	a.attack_type('front')
+	
+	a.damage(gs.updateIn([inactiveplayer(gs), 'deck'], deck =>
+			     deck.unshift(basecard()
+					  .updateIn(['info','power'], _ => 1000)
+					  .updateIn(['info','level',], _ => 3),
+					  basecard()
+					  .updateIn(['info','power'], _ => 1000)
+					  .updateIn(['info','level'], _ => 3))))
 	    .mergeMap(a.updateUI({}))
 	    .subscribe(
 		g => {
+		    gs = g
 		},
 		err => {
 		    done(err)
 		},
 		_ => {
+		    expect(gs.getIn([inactiveplayer(gs), 'clock']).size).to.equal(1)
+		    
 		    done()
 		})
     })
@@ -273,18 +285,39 @@ describe('attack_phase', function() {
 	})
 	const a = AttackPhase(gs = populate_stage(gs), ui)
 	expect(a).to.not.be.null;
-	a.setpos(['center','left'])
-	a.battle_step(gs, basecard())
+	a.attack_type('front')
+ 	a.pos(['center','left'])
+ 	a.battle_step(gs)
 	    .mergeMap(a.updateUI({}))
 	    .subscribe(
 		g => {
+		    gs = g
 		},
 		err => {
 		    done(err)
 		},
 		_ => {
-		    done()
+		    expect(Status.reversed(gs.getIn([currentplayer(gs), 'stage', 'center', 'left']).first())).to.be.true
+
+		    a.pos(['center','right'])
+		    a.battle_step(gs)
+			.mergeMap(a.updateUI({}))
+			.subscribe(
+			    g => {
+				gs = g;
+			    },
+			    err => {
+				done(err)
+			    },
+			    _ => {
+				expect(Status.reversed(gs.getIn([inactiveplayer(gs), 'stage', 'center', 'left']).first())).to.be.true
+				done()
+			    })
+			    
 		})
+
+
+	
     })
 
     it('attack_encore', function(done) {
@@ -305,7 +338,7 @@ describe('attack_phase', function() {
 	})
 	const a = AttackPhase(gs = populate_stage(gs), ui)
 	expect(a).to.not.be.null;
-	a.setpos(['center','left'])
+	a.pos(['center','left'])
 	a.encore(gs, basecard())
 	    .mergeMap(a.updateUI({}))
 	    .subscribe(

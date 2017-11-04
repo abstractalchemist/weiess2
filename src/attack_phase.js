@@ -9,6 +9,7 @@ import { Map, fromJS, List } from 'immutable'
 import { Triggers, Status } from './battle_const'
 import { PoolFunction, DrawFunction, TreasureFunction } from './triggerfunctions'
 import React from 'react'
+import { power_calc, soul_calc, level_calc } from './modifiers'
 
 const AttackPhase = function(gs, ui, controller) {
 
@@ -57,6 +58,7 @@ const AttackPhase = function(gs, ui, controller) {
 			    actions = [
 				{
 				    exec() {
+//					console.log('setting to front')
 					_attack_type = 'front'
 					_pos = pos1
 					return of(gs.updateIn([currentplayer(gs), 'stage'].concat(pos1), cards => cards.update(0, card => card.updateIn(['status'], _ => Status.rest()))))
@@ -78,9 +80,10 @@ const AttackPhase = function(gs, ui, controller) {
 									     let o = gs.getIn([inactiveplayer(gs), 'stage'].concat(oppos))
 									     if(List.isList(o) && iscard(o = o.first())) {
 										 
-										 let level = o.getIn(['active','level'])
-										 if(typeof level === 'function')
-										     level = level(gs)
+ 										 // let level = o.getIn(['active','level'])
+										 // if(typeof level === 'function')
+										 //     level = level(gs)
+										 let level = level_calc(o, gs)
 										 return gs => {
 										     if(typeof s === 'function') {
 											 return s(gs) - level
@@ -179,12 +182,18 @@ const AttackPhase = function(gs, ui, controller) {
 
     
     return {
-	setpos(pos) {
-	    _pos = pos
-	},
-	attack_pos() {
+	pos(pos) {
+	    if(pos)
+		_pos =pos
 	    return _pos
+
 	},
+	attack_type(type) {
+	    if(type)
+		_attack_type = type
+	    return _attack_type
+	},
+	
 	updateUI:updateUI,
 	// runs through each phase
 	resolve() {
@@ -395,7 +404,7 @@ const AttackPhase = function(gs, ui, controller) {
 		gs = gs.updateIn(['triggeraction'], _ => trigger_action)
 		    
 	    }
-	    console.log(`*********************************** ${prompt} *************************************`)
+//	    console.log(`*********************************** ${prompt} *************************************`)
 	    //	    console.log(`looking at ${pos}`)
 	    if(prompt) {
 		
@@ -437,17 +446,15 @@ const AttackPhase = function(gs, ui, controller) {
 	    if(!_pos)
 		return of(gs)
 	    let attacking_card = gs.getIn([currentplayer(gs), 'stage'].concat(_pos)).first();
-	    let soul = attacking_card.getIn(['active','soul'])
-//	    let pos = findstageposition(gs, attacking_card)
-	    let soulcount = soul;
-	    if(typeof soul === 'function')
-		soulcount = soul(gs)
+	    let soulcount = soul_calc(attacking_card, gs)
 	    if(_attack_type === 'direct')
 		soulcount ++;
 	    if(soulcount < 0) soulcount = 0
 	    gs = dealdamage(soulcount, gs, currentplayer(gs))
+	    
+//	    console.log(`${gs.getIn([currentplayer(gs), 'clock']).size} damage from ${soulcount}`)
 	    if(gs.getIn(['trigger']) === 'shot')
-		gs = dealdamage(soulcount, gs, currentplayer(gs), false)
+		gs = dealdamage(1, gs, currentplayer(gs), false)
 	    // if(pos)
 	    // 	_attacking_card = gs.getIn([currentplayer(gs), 'stage'].concat(pos)).first();
 	    return of(gs);
@@ -462,12 +469,13 @@ const AttackPhase = function(gs, ui, controller) {
 	    let oppos = findoppos(_pos)
 	    let defending_card = G.stage(gs, inactiveplayer(gs)).getIn(oppos)
 	    if(List.isList(defending_card) && iscard(defending_card = defending_card.first())) {
-		let attack_power = attacking_card.getIn(['active', 'power'])
+//		let attack_power = attacking_card.getIn(['active', 'power'])
 		
-		let defending_power = defending_card.getIn(['active', 'power'])
-
-		let apow = typeof attack_power === 'function' ? attack_power(gs) : attack_power;
-		let dpow = typeof defending_power === 'function' ? defending_power(gs) : defending_power;
+//		let defending_power = defending_card.getIn(['active', 'power'])
+		
+		let apow = power_calc(attacking_card, gs)//typeof attack_power === 'function' ? attack_power(gs) : attack_power;
+		let dpow = power_calc(defending_card, gs)//typeof defending_power === 'function' ? defending_power(gs) : defending_power;
+//		console.log(`apow ${apow}, dpow ${dpow}`)
 		if(apow >= dpow) {
 		    defending_card = defending_card.updateIn(['status'], _ => Status.reversed())
 		}
