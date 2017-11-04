@@ -67,34 +67,44 @@ function getId(gs, player, pos) {
 function findbase(card, gs, type) {
     if(!card)
 	return -1
-   
+    
     if(!iscard(card)) {
 	let id = card;
 	// then is id
 	let pos = [['center','left'],
-	 ['center','middle'],
-	 ['center','right'],
-	 ['back','left'],
+		   ['center','middle'],
+		   ['center','right'],
+		   ['back','left'],
 		   ['back','right']]
 
 	pos.forEach(i => {
-	    if(card === getId(gs, 'player1', i))
-		card = gs.getIn(['player1', 'stage'].concat(pos))
+	    let checked_id
+	    if(id === (checked_id = getId(gs, 'player1', i))) {
+		console.log(`${checked_id} matches ${card}`)
+		card = gs.getIn(['player1', 'stage'].concat(i)).first()
+	    }
+	    else
+		console.log(`${checked_id} does not match ${card}`)
 	})
 	pos.forEach(i => {
-	    if(card === getId(gs, 'player2', i))
-		card = gs.getIn(['player2', 'stage'].concat(pos))
-	
+	    let checked_id
+	    if(id === (checked_id = getId(gs, 'player2', i))) 
+	    {		console.log(`${checked_id} matches ${card}`)
+			card = gs.getIn(['player2', 'stage'].concat(i)).first()
+	    }
+	    else
+		console.log(`${checked_id} does not match ${card}`)
+	    
 	})
 	
 	if(!card) // this make no error occur
 	    return -1;
     }
-   
+    
     let base = card.getIn(['active',type])
     if(typeof base === 'function')
 	base = base(gs)
-//    console.log(`base before ${base}`)
+    //    console.log(`base before ${base}`)
     base += collectactivateablecards(gs).map(c => {
     	let func;
     	if(func = c.getIn(['continous',type]))
@@ -104,7 +114,7 @@ function findbase(card, gs, type) {
 	.reduce( (R,T) => {
 	    return R + T
 	}, 0)
-  //  console.log(`base after ${base}`)
+    //  console.log(`base after ${base}`)
     return base
 
 }
