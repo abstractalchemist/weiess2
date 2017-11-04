@@ -56,11 +56,55 @@ const collectactivateablecards = function(gs) {
     return implcollectplayercards(currentplayer(gs), gs).concat(implcollectplayercards(inactiveplayer(gs), gs))
 }
 
+function getId(gs, player, pos) {
+    let stage_pos = gs.getIn([player, 'stage'].concat(pos))
+    
+    if(List.isList(stage_pos) && stage_pos.size > 0) {
+	return stage_pos.first().getIn(['info','id'])
+    }
+}
 
 function findbase(card, gs, type) {
+    if(!card)
+	return -1
+   
+    if(!iscard(card)) {
+	let id = card;
+	// then is id
+	let pos = [['center','left'],
+	 ['center','middle'],
+	 ['center','right'],
+	 ['back','left'],
+		   ['back','right']]
+
+	pos.forEach(i => {
+	    if(card === getId(gs, 'player1', i))
+		card = gs.getIn(['player1', 'stage'].concat(pos))
+	})
+	pos.forEach(i => {
+	    if(card === getId(gs, 'player2', i))
+		card = gs.getIn(['player2', 'stage'].concat(pos))
+	
+	})
+	
+	if(!card) // this make no error occur
+	    return -1;
+    }
+   
     let base = card.getIn(['active',type])
     if(typeof base === 'function')
 	base = base(gs)
+//    console.log(`base before ${base}`)
+    base += collectactivateablecards(gs).map(c => {
+    	let func;
+    	if(func = c.getIn(['continous',type]))
+    	    return func(card, gs)
+    	return 0;
+    })
+	.reduce( (R,T) => {
+	    return R + T
+	}, 0)
+  //  console.log(`base after ${base}`)
     return base
 
 }

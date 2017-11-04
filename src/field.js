@@ -5,17 +5,22 @@ import { power_calc, level_calc } from './modifiers'
 //const master = {height:"290px",background:"url(http://www.lilakihabara.com/wp-content/uploads/2016/06/ws_cardback_600px.png)", backgroundSize:"100%"};
 //const master = {background:"url(http://www.lilakihabara.com/wp-content/uploads/2016/06/ws_cardback_600px.png)"};
 const master = {}
-function text({active,info}) {
-    let level = active.level || info.level;
-    let lvl = level
-    if(typeof level === 'function') {
-	lvl = level()
-    }
-    let clock = active.power || info.power;
-    let cl = clock;
-    if(typeof clock === 'function')
-	cl = clock();
-    return `Level ${lvl}, Power ${cl}`
+// function text({active,info}) {
+//     let level = active.level || info.level;
+//     let lvl = level
+//     if(typeof level === 'function') {
+// 	lvl = level()
+//     }
+//     let clock = active.power || info.power;
+//     let cl = clock;
+//     if(typeof clock === 'function')
+// 	cl = clock();
+//     return `Level ${lvl}, Power ${cl}`
+// }
+
+function text(gs, card) {
+    if(!gs) throw new Error("game state required")
+    return `Level ${level_calc(card.info.id, gs)} Power ${power_calc(card.info.id, gs)}`
 }
 
 function processbackground(img, status) {
@@ -64,7 +69,7 @@ function Card({ui,gs,obs,card}) {
 					    gs => {
 						obs.next(gs)
 						obs.complete()
- 					    })
+  					    })
 				    }
 				}>
 				
@@ -81,6 +86,8 @@ function Card({ui,gs,obs,card}) {
 }
 
 function StageCard({ui,obs,gs,cards}) {
+    if(!gs)
+	throw new Error("game state required")
     cards = cards || [];
     let card = cards[0] || {active:{},info:{}};
     let style = Object.assign({}, master)
@@ -99,7 +106,7 @@ function StageCard({ui,obs,gs,cards}) {
 	    <div className="mdl-card__title" style={style}>
 	    </div>
 	    <div className="mdl-card__supporting-text">
-	    {text(card)}
+	    {text(gs, card)}
 	    </div>
 	    <div className="mdl-card__actions">
 	    {( _ => {
@@ -301,15 +308,15 @@ function fieldReverse({game_state,obs}, controller) {
     let center= [ <SpacerSlot key='spacer-1' id='spacer-1' width={2} />,  // spacer
 		  <SpacerSlot key='spacer-2' id='spacer-2' width={2} />,  // spacer		  
 		  <CardSlot id='left-center-player2' key='left-center-player2'>
-		  <StageCard ui={controller} obs={obs} cards={gs.stage.center.left}/>
+		  <StageCard ui={controller} obs={obs} cards={gs.stage.center.left} gs={game_state}/>
 		  </CardSlot>,  // left center
 		  
 		  <CardSlot id='middle-center-player2' key='middle-center-player2' >
-		  <StageCard ui={controller} obs={obs} cards={gs.stage.center.middle}/>
+		  <StageCard ui={controller} obs={obs} cards={gs.stage.center.middle} gs={game_state}/>
 		  </CardSlot>,  // middle center
 		  
 		  <CardSlot id='right-center-player2' key='right-center-player2' >
-		  <StageCard ui={controller} obs={obs} cards={gs.stage.center.right}/>
+		  <StageCard ui={controller} obs={obs} cards={gs.stage.center.right} gs={game_state}/>
 		  </CardSlot>,  // right center
 		  
 
@@ -324,11 +331,11 @@ function fieldReverse({game_state,obs}, controller) {
 		 <SpacerSlot key='spacer-3' id='spacer-3' width={3} />, //spacer
 		 
 		 <CardSlot id='back-left-player2' key='back-left-player2' >
-		 <StageCard ui={controller} obs={obs} cards={gs.stage.back.left}/>
+		 <StageCard ui={controller} obs={obs} cards={gs.stage.back.left} gs={game_state}/>
 		 </CardSlot>, // back left
 		 
 		 <CardSlot id='back-right-player2' key='back-right-player2' >
-		 <StageCard ui={controller} obs={obs} cards={gs.stage.back.right}/>
+		 <StageCard ui={controller} obs={obs} cards={gs.stage.back.right} gs={game_state}/>
 		 </CardSlot>, // back right
 		 
 		 <SpacerSlot key='spacer-4' id='spacer-4' width={1} />,  // spacer
@@ -368,15 +375,15 @@ function field({game_state,obs}, controller) {
     //    console.log(gs.waiting_room)
     let center= [ <SpacerSlot key='spacer-6' id='spacer-6' width={2} />,  // spacer
 		  <CardSlot id='left-center-player1' key='left-center-player1' >
-		  <StageCard ui={controller} obs={obs} cards={gs.stage.center.left}/>
+		  <StageCard ui={controller} obs={obs} cards={gs.stage.center.left} gs={game_state}/>
 		  </CardSlot>,  // left center
 		  
 		  <CardSlot id='middle-center-player1' key='middle-center-player1' >
-		  <StageCard ui={controller} obs={obs} cards={gs.stage.center.middle}/>
+		  <StageCard ui={controller} obs={obs} cards={gs.stage.center.middle} gs={game_state}/>
 		  </CardSlot>,  // middle center
 		  
 		  <CardSlot id='right-center-player1' key='right-center-player1' >
-		  <StageCard ui={controller} obs={obs} cards={gs.stage.center.right}/>
+		  <StageCard ui={controller} obs={obs} cards={gs.stage.center.right} gs={game_state}/>
 		  </CardSlot>,  // right center
 		  
 		  <SpacerSlot key='spacer-12' id='spacer-7' width={2} />,  // spacer
@@ -392,11 +399,11 @@ function field({game_state,obs}, controller) {
 		 <SpacerSlot key='spacer-8' id='spacer-8' width={1} />, //spacer
 		 
 		 <CardSlot id='back-left-player1' key='back-left-player1' >
-		 <StageCard ui={controller} obs={obs} cards={gs.stage.back.left}/>
+		 <StageCard ui={controller} obs={obs} cards={gs.stage.back.left} gs={game_state}/>
 		 </CardSlot>, // back left
 		 
 		 <CardSlot id='back-right-player1' key='back-right-player1' >
-		 <StageCard ui={controller} obs={obs} cards={gs.stage.back.right}/>
+		 <StageCard ui={controller} obs={obs} cards={gs.stage.back.right} gs={game_state}/>
 		 </CardSlot>, // back right
 		 
 		 <SpacerSlot key='spacer-9' id='spacer-9' width={3} />,  // spacer
