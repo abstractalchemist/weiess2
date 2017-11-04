@@ -8,7 +8,8 @@ const Triggers = {
     pool : "pool",
     draw : "draw",
     shot : "shot",
-    soul : "soul"
+    soul : "soul",
+    soulgate : "soul gate"
 }
 
 const Status = {

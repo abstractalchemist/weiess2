@@ -39,6 +39,7 @@ function DeckSelector({game_state, field, player, onselect, selectcount, filter}
     console.log(`looking at ${field} at player ${player}`)
     if(!Array.isArray(field))
 	field = [field]
+    filter = filter || (_ => true)
     return (<dialog className="mdl-dialog" id="deck-selector">
 	    <CardDisplay cards={game_state.getIn([player].concat(field)).filter(filter).toJS()} />
 	    <div className="mdl-dialog__actions">

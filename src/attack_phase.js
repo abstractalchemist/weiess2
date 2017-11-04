@@ -276,6 +276,18 @@ const AttackPhase = function(gs, ui, controller) {
 	    if(iscard(trigger_card)) {
 		let trigger_action = trigger_card.getIn(['info', 'trigger_action'])
 		switch(trigger_action) {
+		case Triggers.soulgate: {
+		    attacking_card = attacking_card.updateIn(['active', 'soul'], soul => {
+			return gs => {
+			    if(typeof soul === 'function')
+				return 1 + soul(gs)
+			    return 1 + soul
+			}
+		    })
+		    
+		    prompt = ui.prompt(searchwaitingroom(1, 'hand', isclimax, gs));
+		}
+		    break;
 		case Triggers.soul : {
 		    attacking_card = attacking_card.updateIn(['active', 'soul'], soul => {
 			return gs => {
