@@ -1,6 +1,36 @@
 import React from 'react'
 
 
+class CardDisplay extends React.Component {
+    constructor(props) {
+	super(props)
+	this.state = { i : 0 }
+    }
+
+    render() {
+	return (<div className='mdl-dialog__content' style={
+	    ( _ => {
+		if(this.props.cards && this.props.cards.length > 0)
+		    return {background:`no-repeat center/80% url(${this.props.cards[this.state.i].info.image})`, display:"flex", minHeight:"290px"}
+		return {}
+	    })()
+	}><div style={{alignSelf:"flex-end"}}>
+		<button className="mdl-button mdl-js-button mdl-button--icon">
+		<i className="material-icons">plus</i>
+		</button>
+		<input className="mdl-slider mdl-js-slider" type="range" value={this.state.i} onChange={
+		    evt => {
+			this.setState({i:evt.currentTarget.value})
+		    }
+		}
+		min="0" max={this.props.cards.length - 1} tabindex="0"></input>
+		</div>
+		</div>)
+	
+    }
+}
+
+
 // select cards from the deck, or anywhere else
 // onselect - function to pass card ids that were selected
 // selectcount - number of allowable cards to select
@@ -10,16 +40,7 @@ function DeckSelector({game_state, field, player, onselect, selectcount, filter}
     if(!Array.isArray(field))
 	field = [field]
     return (<dialog className="mdl-dialog" id="deck-selector">
-	    <div className="mdl-dialog__content">
-	    <div className="mdl-grid">
-	    {( _ => {
-		let loc = game_state.getIn([player]).getIn(field);
-
-		return loc.toJS().filter(filter).map(c => c.info.id).map(id => <div className="mdl-cell mdl-cell--1-col">{id}</div>)
-	    })()
-	    }
-	    </div>
-	    </div>
+	    <CardDisplay cards={game_state.getIn([player].concat(field)).filter(filter).toJS()} />
 	    <div className="mdl-dialog__actions">
 	    <button id='deckselector-ok' className="mdl-button mdl-js-button" onClick={
 		evt => {
@@ -36,6 +57,6 @@ function DeckSelector({game_state, field, player, onselect, selectcount, filter}
 }
 
 export default DeckSelector;
-	   
 
-    
+
+

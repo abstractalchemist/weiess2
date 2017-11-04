@@ -531,17 +531,17 @@ const applyActions = (gs, evt, ui, next) => {
 // evt - the event that occurred
 // func - a function to be executed by any activated action; or force the stream to continue
 const updateUIFactory = function(ui) {
-//    console.log(`*********************** ui ${ui} ****************************`)
+    //    console.log(`*********************** ui ${ui} ****************************`)
     return function(evt, ignoreprompt, func) {
-//	console.log(`*********************** ui ${ui}, evt ${evt} ****************************`)
+	//	console.log(`*********************** ui ${ui}, evt ${evt} ****************************`)
 	return function(gs)  {
-	    console.log(`gs? ${gs}`)
+	    //	    console.log(`gs? ${gs}`)
 	    let f = func || (o => (gs => {
-		console.log(`gs? ${gs}`)
+		//		console.log(`gs? ${gs}`)
 		o.next(gs)
 		o.complete()
 	    }))
-	    console.log(`gs? ${gs}`)
+	    //	    console.log(`gs? ${gs}`)
 	    return create(obs => {
 		ui.updateUI(applyActions(gs,evt, ui, f(obs)), obs, evt, ignoreprompt)
 	    })
@@ -549,4 +549,47 @@ const updateUIFactory = function(ui) {
     }
 }
 
-export { applyActions ,debug, iscard, findopenpositions, collectactivateablecards,  isevent, isclimax, canplay, payment, findcardonstage, findstageposition, G, dealdamage, clockDamage, hasavailableactions, clearactions, reset, validatefield, updateUIFactory }
+
+function CardViewer({func, gs, ui}) {
+    return (<dialog id='card-viewer'>
+	    <div className='mdl-dialog__content viewer' >
+	    {( _ => {
+		let deck = G.deck(gs)
+		let c
+		if(deck.size > 0 && iscard(c = deck.first())) {
+		    if(isclimax(c))
+		       return (<div className="image-viewer" style={{background:`no-repeat center/80% url(${c.getIn(['info','image'])})`, transform:"rotate(270deg)"}}>
+			    </div>)
+		       
+		    return (<div className="image-viewer" style={{background:`no-repeat center/80% url(${c.getIn(['info','image'])})`}}>
+			    </div>)
+		}
+	    })()
+	    }
+	    </div>
+	    <div className='mdl-dialog__actions'>
+	    <button id='card-viewer-ok' className='mdl-button mdl-js-button' onClick={
+		evt => {
+		    ui.closeCurrentPrompt()
+		    func(gs)
+		}
+	    }>
+	    Ok
+	    </button>
+	    </div>
+	    </dialog>)
+}
+
+function cardviewer(ui) {
+    return gs => {
+	return ui.prompt(func => {
+	    return {
+		prompt:<CardViewer gs={gs} func={func}  ui={ui} />,
+		id:'card-viewer'
+	    }
+	})
+    }
+}
+
+
+export { applyActions ,debug, iscard, findopenpositions, collectactivateablecards,  isevent, isclimax, canplay, payment, findcardonstage, findstageposition, G, dealdamage, clockDamage, hasavailableactions, clearactions, reset, validatefield, updateUIFactory, cardviewer }

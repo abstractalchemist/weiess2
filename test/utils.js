@@ -20,6 +20,12 @@ function init(phase, turn, ui = {
     },
 
     prompt(prompt) {
+	return create(obs => {
+	    return prompt(gs => {
+		obs.next(gs)
+		obs.complete()
+	    })
+	})
     }
 }) {
     let gs = GameStateFactory();

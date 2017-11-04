@@ -205,8 +205,38 @@ function LevelCard({level}) {
 	    </div>)
 }
 
-function WaitingCard({cards}) {
-    let style = master
+class CardDisplay extends React.Component {
+    constructor(props) {
+	super(props)
+	this.state = { i : 0 }
+    }
+
+    render() {
+	return (<div className='mdl-dialog__content' style={
+	    ( _ => {
+		if(this.props.cards && this.props.cards.length > 0)
+		    return {background:`no-repeat center/80% url(${this.props.cards[this.state.i].info.image})`, display:"flex", minHeight:"290px"}
+		return {}
+	    })()
+	}><div style={{alignSelf:"flex-end"}}>
+		<input className="mdl-slider mdl-js-slider" type="range" value={this.state.i} onChange={
+		    evt => {
+			this.setState({i:evt.currentTarget.value})
+		    }
+		}
+		min="0" max={this.props.cards.length - 1} tabindex="0"></input>
+		</div>
+		</div>)
+	
+    }
+}
+
+function WaitingCard({cards,id}) {
+    let style = Object.assign({}, master)
+    if(cards.length > 0) {
+	let img = cards[0].info.image;
+	style['background'] = `no-repeat center/80% url(${img})`
+    }
     return (<div className="mdl-card game-card">
 	    <div className="mdl-card__title" style={style}>
 	    </div>
@@ -214,7 +244,24 @@ function WaitingCard({cards}) {
 	    Waiting room contains {cards.length}
 	    </div>
 	    <div className="mdl-card__actions">
+	    <button className='mdl-button mdl-js-button' onClick={
+		evt => {
+		    document.querySelector(`#waiting-room-viewer-${id}`).showModal()
+		}
+	    }>
+	    View Waiting Room
+	    </button>
 	    </div>
+	    <dialog className="mdl-dialog" id={`waiting-room-viewer-${id}`}>
+	    <CardDisplay cards={cards} />
+	    <button className='mdl-button mdl-js-button' onClick={
+		evt => {
+		    document.querySelector(`#waiting-room-viewer-${id}`).close()
+		}
+	    }>
+	    OK
+	    </button>
+	    </dialog>
 	    </div>)
     
 }
@@ -224,7 +271,7 @@ function ClockCard({clock}) {
     if(clock && clock[0]) {
 	style['background'] = processbackground(clock[0].info.image);
     }
-    return (<div className="mdl-card game-card" style={style}>
+    return (<div className="mdl-card game-card">
 	    <div className="mdl-card__title" style={style}>
 	    </div>
 	    <div className="mdl-card__supporting-text">
@@ -308,7 +355,7 @@ function fieldReverse({game_state,obs}, controller) {
 		   <SpacerSlot key='spacker-12' id='spacer-12' width={3} />,
 		   
 		   <CardSlot id='waiting-player2' key='waiting-player2' >
-		   <WaitingCard cards={gs.waiting_room}/>
+		   <WaitingCard cards={gs.waiting_room} id="reverse"/>
 		   </CardSlot>]
     
     return [].concat(behind.reverse(),back.reverse(),center.reverse())
@@ -375,7 +422,7 @@ function field({game_state,obs}, controller) {
 		   <SpacerSlot key='spacer-11' id='spacer-11' width={3} />,
 		   
 		   <CardSlot id='waiting-player1' key='waiting-player1' >
-		   <WaitingCard cards={gs.waiting_room}/>
+		   <WaitingCard cards={gs.waiting_room} id="current"/>
 		   </CardSlot>]
     return [].concat(center,back,behind)
 }

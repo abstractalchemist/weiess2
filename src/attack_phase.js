@@ -1,5 +1,5 @@
 import { Observable } from 'rxjs'
-import { updateUIFactory, applyActions, clearactions, hasavailableactions, collectactivateablecards, isclimax, G, findcardonstage, findstageposition, iscard, dealdamage, clockDamage } from './utils'
+import { cardviewer, updateUIFactory, applyActions, clearactions, hasavailableactions, collectactivateablecards, isclimax, G, findcardonstage, findstageposition, iscard, dealdamage, clockDamage } from './utils'
 import { drawfromdeck, refresh, applyrefreshdamage, searchwaitingroom } from './deck_utils'
 import { inactiveplayer, currentplayer } from './game_pos'
 import StageSelector from './stageselector'
@@ -8,6 +8,7 @@ const { of, create } = Observable;
 import { Map, fromJS, List } from 'immutable'
 import { Triggers, Status } from './battle_const'
 import { PoolFunction, DrawFunction, TreasureFunction } from './triggerfunctions'
+import React from 'react'
 
 const AttackPhase = function(gs, ui, controller) {
 
@@ -199,6 +200,7 @@ const AttackPhase = function(gs, ui, controller) {
 		    if(_pos) {
 			return of(gs)
 			    .mergeMap(updateUI({evt:"attack_trigger"}, true))
+			    .mergeMap(cardviewer(ui))
 			    .mergeMap(gs => this.trigger(gs))
 			    .map(applyrefreshdamage)
 			    .mergeMap(clockDamage(ui))
@@ -319,7 +321,10 @@ const AttackPhase = function(gs, ui, controller) {
 		}
 		    break;
 		case Triggers.salvage : {
-		    prompt = ui.prompt(searchwaitingroom);
+		    let filter = c => {
+			return iscard(c) && c.getIn(['info', 'power']) > 0
+		    }
+		    prompt = ui.prompt(searchwaitingroom(1, 'hand', filter, gs));
 		    gs = stock_trigger(gs)
 
 		}
@@ -368,28 +373,6 @@ const AttackPhase = function(gs, ui, controller) {
 			}
 		    });
 		    
-		    // gs = gs.updateIn([currentplayer(gs), 'hand'], hand => hand.push(trigger_card))
-		    // 	.updateIn([currentplayer(gs), 'deck'], deck => {
-		    // 	    if(deck.size > 0) {
-		    // 		return deck.update(0, card => {
-		    // 		    return card.updateIn(['actions'], _ => {
-		    // 			return fromJS([
-		    // 			    {
-		    // 				exec() {
-		    // 				    let deck = G.deck(gs)
-		    // 				    let card = deck.first()
-		    // 				    return  of(refresh(gs.updateIn([currentplayer(gs), 'deck'], deck => deck.shift()))
-		    // 					       .updateIn([currentplayer(gs), 'stock'], stock => stock.push(card)))
-						    
-		    // 				},
-		    // 				desc: "Treasure"
-		    // 			    }
-		    // 			])
-		    // 		    })
-		    // 		})
-		    // 	    }
-		    // 	    return deck;
-		    // 	})
 		}
 		    break;
 		default:
@@ -400,10 +383,12 @@ const AttackPhase = function(gs, ui, controller) {
 		gs = gs.updateIn(['triggeraction'], _ => trigger_action)
 		    
 	    }
-
+	    console.log(`*********************************** ${prompt} *************************************`)
 	    //	    console.log(`looking at ${pos}`)
-	    if(prompt)
+	    if(prompt) {
+		
 		return prompt;
+	    }
 	    if(_pos)
 		return of(gs.updateIn([currentplayer(gs), 'stage'].concat(_pos), cards => cards.update(0, _ => attacking_card)))
 	    return of(gs)
@@ -448,9 +433,9 @@ const AttackPhase = function(gs, ui, controller) {
 	    if(_attack_type === 'direct')
 		soulcount ++;
 	    if(soulcount < 0) soulcount = 0
-	    gs = dealdamage(soulcount, gs, inactiveplayer(gs))
+	    gs = dealdamage(soulcount, gs, currentplayer(gs))
 	    if(gs.getIn(['trigger']) === 'shot')
-		gs = dealdamage(soulcount, gs, inactiveplayer(gs), false)
+		gs = dealdamage(soulcount, gs, currentplayer(gs), false)
 	    // if(pos)
 	    // 	_attacking_card = gs.getIn([currentplayer(gs), 'stage'].concat(pos)).first();
 	    return of(gs);

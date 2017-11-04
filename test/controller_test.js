@@ -42,6 +42,7 @@ describe('ControllerFactory', function() {
     })
     it('standup no stage cards', function(done) {
 	//	let gs, controller;
+	let ui;
 	let [gs, controller ] = init('standup', 0)
 
 	controller.standup()
@@ -57,7 +58,30 @@ describe('ControllerFactory', function() {
 		})
     })
     it('draw no cards', function(done) {
-	let [gs, controller] = init('draw', 0)
+	let ui = {
+	    updateUI(gs, obs, evt) {
+		if(!hasavailableactions(gs)) {
+		    obs.next(gs)
+		    obs.complete()
+		}
+	    },
+
+	    prompt(func) {
+		return create(obs => {
+		    let {prompt, id} = func(gs => {
+			obs.next(gs)
+			obs.complete()
+		    })
+		    const p = mount(prompt)
+		    p.find('#card-viewer-ok').simulate('click')
+		})
+	    },
+
+	    closeCurrentPrompt() {
+	    }
+	}
+
+	let [gs, controller] = init('draw', 0, ui)
 	
 	expect(G.hand(gs).size).to.equal(0)
 	expect(G.deck(gs).size).to.equal(0)
@@ -77,7 +101,30 @@ describe('ControllerFactory', function() {
     })
 
     it('draw', function(done) {
-	let [gs, controller] = init('draw', 0);
+	let ui = {
+	    updateUI(gs, obs, evt) {
+		if(!hasavailableactions(gs) && obs) {
+		    obs.next(gs)
+		    obs.complete()
+		}
+	    },
+
+	    prompt(func) {
+		return create(obs => {
+		    let {prompt, id} = func(gs => {
+			obs.next(gs)
+			obs.complete()
+		    })
+		    const p = mount(prompt)
+		    p.find('#card-viewer-ok').simulate('click')
+		})
+	    },
+
+	    closeCurrentPrompt() {
+	    }
+	}
+
+	let [gs, controller] = init('draw', 0, ui);
 	controller.updategamestate(gs = gs.updateIn([currentplayer(gs), 'deck'], deck => deck.push(basecard(), basecard())))
 	
 	expect(G.deck(gs).size).to.equal(2)

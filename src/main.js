@@ -7,7 +7,8 @@ const { create, of } = Observable;
 import { buildCardSet, CardSetNameView } from 'weiss-utils'
 import GameStateFactory from './game_state'
 import CardStore from './card_store'
-import { hasavailableactions, currentplayer, inactiveplayer } from './utils'
+import { hasavailableactions } from './utils'
+import { currentplayer, inactiveplayer } from './game_pos'
 import { fromJS } from 'immutable'
 import GamePhases from './game_phases'
 

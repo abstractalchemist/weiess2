@@ -4,7 +4,9 @@ import { init, basecard, basestack } from './utils'
 import { hasavailableactions } from '../src/utils'
 import { currentplayer, inactiveplayer } from '../src/game_pos'
 import { Triggers, Status } from '../src/battle_const'
-
+import { Observable } from 'rxjs'
+const { create } =  Observable
+import { mount } from 'enzyme'
 const populate_stage = (gs, trigger_action = 'come_back') => {
     return gs
 	.updateIn([currentplayer(gs), 'stage', 'center'], center => {
@@ -104,7 +106,7 @@ describe('attack_phase', function() {
 		})
     })
 
-    xit('attack_trigger come_back', function(done) {
+    it('attack_trigger come_back', function(done) {
 	let ui;
 	let [gs, controller ] = init('attack', '0', ui = {
 	    updateUI(gs, obs, evt) {
@@ -119,7 +121,13 @@ describe('attack_phase', function() {
 		
 	    },
 	    prompt(promptfunc) {
-		
+		return create(obs => {
+		    let { id, prompt } = promptfunc(gs => {
+			obs.next(gs)
+			obs.complete()
+		    })
+		    mount(prompt).find('#deckselector-ok').simulate('click')
+		})
 	    }
 	})
 	const a = AttackPhase(gs = populate_stage(gs, Triggers.salvage), ui)
@@ -135,13 +143,13 @@ describe('attack_phase', function() {
 		    done(err)
 		},
 		_ => {
-		    expect(gs.getIn(['triggeraction'])).to.equal(Triggers.salvage)
+//		    expect(gs.getIn(['triggeraction'])).to.equal(Triggers.salvage)
 		    expect(gs.getIn([currentplayer(gs), 'deck']).size).to.equal(3)
 		    done()
 		})
     })
     
-    xit('attack_trigger treasure', function(done) {
+    it('attack_trigger treasure', function(done) {
 	let ui;
 	let [gs, controller ] = init('attack', '0', ui = {
 	    updateUI(gs, obs, evt) {
@@ -155,7 +163,15 @@ describe('attack_phase', function() {
 		
 	    },
 	    prompt(promptfunc) {
-		
+		return create(obs => {
+		    
+		    let { id, prompt } =  promptfunc(gs => {
+			obs.next(gs)
+			obs.complete()
+		    })
+		    mount(prompt).find('#trigger-func-ok').simulate('click')
+		    
+		})
 	    }
 	})
 	const a = AttackPhase(gs = populate_stage(gs, Triggers.treasure), ui)
@@ -171,8 +187,9 @@ describe('attack_phase', function() {
 		    done(err)
 		},
 		_ => {
-		    expect(gs.getIn(['triggeraction'])).to.equal(Triggers.treasure)
-		    expect(gs.getIn([currentplayer(gs), 'deck']).size).to.equal(3)
+//		    expect(gs.getIn(['triggeraction'])).to.equal(Triggers.treasure)
+		    expect(gs.getIn([currentplayer(gs), 'deck']).size).to.equal(2) // it has to be two, since trigger pulls one, then you treasure the second one
+		    expect(gs.getIn([currentplayer(gs), 'hand']).size).to.equal(1)
 		    done()
 		})
     })

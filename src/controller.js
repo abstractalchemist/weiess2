@@ -4,7 +4,7 @@ import StageSelector from './stageselector'
 const { of, create } = Observable;
 import { isImmutable, List, fromJS } from 'immutable'
 import GamePositions, { currentplayer, inactiveplayer } from './game_pos'
-import { applyActions, reset, shuffle, debug, iscard, findopenpositions, collectactivateablecards, isevent, isclimax, canplay, payment, G, clockDamage, clearactions, hasavailableactions, validatefield, updateUIFactory } from './utils'
+import { applyActions, reset, shuffle, debug, iscard, findopenpositions, collectactivateablecards, isevent, isclimax, canplay, payment, G, clockDamage, clearactions, hasavailableactions, validatefield, updateUIFactory, cardviewer } from './utils'
 import { refresh, applyrefreshdamage, searchdeck, drawfromdeck } from './deck_utils'
 import AttackPhase from './attack_phase'
 import GamePhases from './game_phases'
@@ -50,6 +50,7 @@ import { Status } from './battle_const'
   }
   }
 */
+
 const ControllerFactory = function(game_state) {
 
     let _ui = undefined;
@@ -111,7 +112,7 @@ const ControllerFactory = function(game_state) {
 						   
 						   exec() {
 						       return of(gs)
-						      
+						       
 							   .mergeMap(gs => {
 							       let hand = G.hand(gs, player)
 							       let index = hand.findIndex(c => c.getIn(['info', 'id']) === card.getIn(['info','id']))
@@ -134,7 +135,7 @@ const ControllerFactory = function(game_state) {
 						   },
 						   desc: "Discard"
 					       }]))
-								
+					   
 					   
 				       })
 				       
@@ -254,7 +255,7 @@ const ControllerFactory = function(game_state) {
 			throw err;
 		    },
 		    _ => {
-//			console.log(G.climax(_gs))
+			//			console.log(G.climax(_gs))
 			
 			_ui.updateUI(_gs)
 			
@@ -301,6 +302,7 @@ const ControllerFactory = function(game_state) {
 	    return of(GamePhases.draw.set(_gs))
 		.map(clearactions)
 		.mergeMap(updateUI(GamePhases.draw.start()))
+		.mergeMap(cardviewer(_ui))
 		.map(drawIt)
 		.map(applyrefreshdamage)
 		.mergeMap(clockDamage(_ui))
@@ -334,12 +336,12 @@ const ControllerFactory = function(game_state) {
 		    let card = hand.findIndex(c => clockIt === c.getIn(['info','id']))
 		    if(card >= 0) {
 			let c = hand.get(card)
-			 
+			
 			gs= gs.updateIn([currentplayer(gs), 'hand'], hand => hand.delete(card))
 			    .updateIn([currentplayer(gs), 'clock'], clock => iscard(c) ? clock.insert(0, c) : clock)
 			gs = drawfromdeck(2, 'hand', gs);
 			
-			   
+			
 		    }
 		    return gs;
 		    
@@ -353,7 +355,7 @@ const ControllerFactory = function(game_state) {
 	    console.log('running main')
 	    let moveCardActions = (srcstage, srcpos) => {
 		return gs => {
-//		    console.log(`adding move phase to ${srcstage} => ${srcpos} with gs ${gs}`)
+		    //		    console.log(`adding move phase to ${srcstage} => ${srcpos} with gs ${gs}`)
 		    return gs.updateIn([currentplayer(gs), 'stage', srcstage, srcpos], cards => cards.update(0, card => {
 			if(iscard(card)) {
 			    console.log(`adding move to ${card.getIn(['info','id'])}`)
@@ -389,7 +391,7 @@ const ControllerFactory = function(game_state) {
 								moveRx = of(gs
 									    .updateIn([currentplayer(gs), deststage], wr => cardpos.concat(wr)))
 							    }
-								
+							    
 							    return moveRx.mergeMap(updateUI({ evt: "move", id:cardpos.first().getIn(['info','id']) }, true))
 								.subscribe(
 								    gs => {

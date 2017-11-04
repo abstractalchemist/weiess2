@@ -120,7 +120,7 @@ function searchwaitingroom(count, destfield, filter, gs, player) {
 	
 	return ids => {
 	    if(ids.length <= count) {
-		id.forEach(id => {
+		ids.forEach(id => {
 		    let deck = G.waiting_room(gs);
 		    let index = deck.findIndex(i => i.getIn(['info','id']) === id)
 		    if(index > 0) {
