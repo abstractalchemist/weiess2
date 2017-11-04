@@ -1,5 +1,6 @@
 import { expect } from 'chai'
-import { applyActions ,debug, iscard, findopenpositions, collectactivateablecards, isevent, isclimax, canplay, payment, findcardonstage, findstageposition, G, dealdamage, clockDamage, hasavailableactions, clearactions, reset, validatefield  } from '../src/utils'
+import { applyActions ,debug, iscard, findopenpositions, isevent, isclimax, canplay, payment, findcardonstage, findstageposition, G, dealdamage, clockDamage, hasavailableactions, clearactions, reset  } from '../src/utils'
+import { validatefield } from '../src/field_utils'
 import GameStateFactory from '../src/game_state'
 import { basecard, basestack, init } from './utils'
 import GamePositions, { currentplayer, inactiveplayer } from '../src/game_pos'
@@ -89,13 +90,6 @@ describe('utils test', function() {
 	expect(open).to.not.be.null
 	expect(open).to.have.lengthOf(5)
 	validatefield(gs)
-    })
-    
-    it('test collectactivateablecards', function() {
-	let [gs, c] = init('main', 0)
-	let activecards = collectactivateablecards(gs)
-	expect(activecards.size).to.equal(0)
-
     })
     
     it('test isevent', function() {

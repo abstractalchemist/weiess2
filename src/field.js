@@ -1,6 +1,7 @@
 import React from 'react'
 import { inactiveplayer, currentplayer } from './game_pos'
 import { Status } from './battle_const'
+import { power_calc, level_calc } from './modifiers'
 //const master = {height:"290px",background:"url(http://www.lilakihabara.com/wp-content/uploads/2016/06/ws_cardback_600px.png)", backgroundSize:"100%"};
 //const master = {background:"url(http://www.lilakihabara.com/wp-content/uploads/2016/06/ws_cardback_600px.png)"};
 const master = {}

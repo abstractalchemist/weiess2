@@ -5,56 +5,10 @@ import GamePositions, { currentplayer, inactiveplayer } from './game_pos'
 import { refresh } from './deck_utils'
 import React from 'react'
 import CardSelector from './cardselector'
+import { collectactivateablecards, level_calc, cost_calc } from './modifiers'
+import { G, validatefield, iscard } from './field_utils'
 
 
-// returns true if c is a card
-const iscard = function(c) {
-    return c !== undefined && isImmutable(c) && c.has('active') && c.has('info');
-}
-
-const validateloc = (label, gs) => {
-    let loc = gs.getIn([label])
-    if(!List.isList(loc))
-	throw new Error(`${label} is undefined or not a list`)
-    if(loc.find(T => T === undefined) || loc.find(T => !Map.isMap(T))) {
-	throw new Error(`${label} contains undefined`)
-    }
-}
-
-const validateside = side => {
-    validateloc('deck', side)
-    validateloc('memory', side)
-    validateloc('clock', side)
-    validateloc('level', side)
-    validateloc('waiting_room', side)
-    validateloc('stock', side)
-}
-
-const validatefield = gs => {
-    validateside(gs.getIn([currentplayer(gs)]))
-    validateside(gs.getIn([inactiveplayer(gs)]))
-}
-
-function getposition(location) {
-    return (gs, player) => {
-	player = player || currentplayer(gs)
-	return gs.getIn([player, location])
-    }
-}
-
-
-const G = {
-    stock:getposition('stock'),
-    stage:getposition('stage'),
-    hand:getposition('hand'),
-    deck:getposition('deck'),
-    memory:getposition('memory'),
-    clock:getposition('clock'),
-    climax:getposition('climax'),
-    waiting_room:getposition('waiting_room'),
-    level:getposition('level')
-    
-}
 
 const findopenpositions = function(gs) {
     let positions = []
@@ -72,56 +26,6 @@ const findopenpositions = function(gs) {
     return positions;
 }
 
-const checkundefined = (l, field) => {
-    if(!l)
-	console.log(`${field} is undefined`)
-    if(l.find(T => T === undefined)) {
-	console.log(`${field} contains undefined`)
-    }
-}
-
-const implcollectplayercards = function(player, gs) {
-    //    console.log(`looking at ${player} cards`)
-    let activecards = List()
-    const pushCard = (stage, pos) => {
-	let c = gs.getIn([player, 'stage', stage, pos])
-	if(iscard(c.first()))
-	    activecards = activecards.push(c.first())
-    }
-    pushCard('center','left')
-    pushCard('center','middle')
-    pushCard('center','right')
-    pushCard('back','left')
-    pushCard('back','right')
-    checkundefined(activecards, 'stage cards')
-    let level, climax, clock, hand, deck, waiting_room, memory;
-    let cards = activecards.concat(level = G.level(gs, player))
-	.concat(climax = G.climax(gs, player))
-	.concat(clock = G.clock(gs, player))
-	.concat(memory = G.memory(gs, player))
-	.concat(hand = G.hand(gs, player))
-	.concat(deck = G.deck(gs, player))
-	.concat(waiting_room = G.waiting_room(gs, player))
-    
-    checkundefined(level, 'level')
-    checkundefined(climax, 'climax')
-    checkundefined(clock, 'clock')
-    checkundefined(hand, 'hand')
-    checkundefined(waiting_room, 'waiting_room')
-    checkundefined(memory, 'memory')
-    checkundefined(cards, 'allcards')
-    //    console.log(`size of cards ${cards.size}`)
-    return cards;
-}
-
-
-
-// collects all cards that could possibly have an affect on the game through either passive or active abilities
-
-const collectactivateablecards = function(gs) {
-    validatefield(gs)
-    return implcollectplayercards(currentplayer(gs), gs).concat(implcollectplayercards(inactiveplayer(gs), gs))
-}
 
 function debug(field, gs) {
 
@@ -227,15 +131,17 @@ const payment = function(cost) {
 
 const canplay = function(gs, h) {
 
-    let level = h.getIn(['active','level'])
-    if(typeof level === 'function')
-	level = level(gs)
-    
+    // let level = h.getIn(['active','level'])
+    // if(typeof level === 'function')
+    // 	level = level(gs)
+
+    let level = level_calc(h, gs)
+    let cost = cost_calc(h, gs)
     // can play if level 0
     return level === 0 ||
 
     // have the stock
-    ( h.getIn(['info', 'cost']) <= G.stock(gs).size &&
+    ( cost <= G.stock(gs).size &&
 
       // color is in level or clock
       ( G.level(gs).map(c => c.getIn(['info','color'])).includes( h.getIn(['info', 'color']) ) ||
@@ -594,4 +500,4 @@ function cardviewer(ui) {
 }
 
 
-export { applyActions ,debug, iscard, findopenpositions, collectactivateablecards,  isevent, isclimax, canplay, payment, findcardonstage, findstageposition, G, dealdamage, clockDamage, hasavailableactions, clearactions, reset, validatefield, updateUIFactory, cardviewer }
+export { applyActions ,debug, iscard, findopenpositions, isevent, isclimax, canplay, payment, findcardonstage, findstageposition, dealdamage, clockDamage, hasavailableactions, clearactions, reset, updateUIFactory, cardviewer }

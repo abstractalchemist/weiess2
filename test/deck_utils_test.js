@@ -1,7 +1,7 @@
 import { refresh, applyrefreshdamage, drawfromdeck, searchdeck, shuffle, searchwaitingroom }  from '../src/deck_utils'
 import { expect } from 'chai'
 import { init, basecard } from './utils'
-import { G, validatefield } from '../src/utils'
+import { G, validatefield } from '../src/field_utils'
 import { List } from 'immutable'
 import { currentplayer } from '../src/game_pos'
 import { Observable } from 'rxjs'

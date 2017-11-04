@@ -1,5 +1,7 @@
 import { Observable } from 'rxjs'
-import { cardviewer, updateUIFactory, applyActions, clearactions, hasavailableactions, collectactivateablecards, isclimax, G, findcardonstage, findstageposition, iscard, dealdamage, clockDamage } from './utils'
+import { cardviewer, updateUIFactory, applyActions, clearactions, hasavailableactions, isclimax, findcardonstage, findstageposition, iscard, dealdamage, clockDamage } from './utils'
+
+import { collectactivateablecards } from './modifiers'
 import { drawfromdeck, refresh, applyrefreshdamage, searchwaitingroom } from './deck_utils'
 import { inactiveplayer, currentplayer } from './game_pos'
 import StageSelector from './stageselector'
@@ -10,7 +12,7 @@ import { Triggers, Status } from './battle_const'
 import { PoolFunction, DrawFunction, TreasureFunction } from './triggerfunctions'
 import React from 'react'
 import { power_calc, soul_calc, level_calc } from './modifiers'
-
+import { G } from './field_utils'
 const AttackPhase = function(gs, ui, controller) {
 
 //    let _attacking_card = undefined
