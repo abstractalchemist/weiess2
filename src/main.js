@@ -458,7 +458,7 @@ class Main extends React.Component {
 	    cardset_coll:this.state.cardset_coll,
 	    cardset_filter:this.state.filter_cards,
 	    filterCardSet: evt => {
-		this.setState({filter_cards:evt.currentValue.value})
+		this.setState({filter_cards:evt.currentTarget.value})
 	    },
 	    addhandler2:(this.state.load_mode === 'place_cards' ? this.addFromSetToField.bind(this) : undefined),
 	    addFilterOptions:[

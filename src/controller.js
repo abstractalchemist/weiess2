@@ -39,8 +39,8 @@ import { Status } from './battle_const'
      cost(card,gs)
  }
 
-// returns auto abilities that active based on an event;  must return a (func => { prompt, id }) function to prompt the user to take an action
-  auto_abilities(a,evt) 
+// returns auto abilities that active based on an event;  must return a immutable List of (func => { prompt, id }) function to prompt the user to take an action
+  auto_abilities(evt,gs) 
 
   // this is a function which return a list of { exec, desc } actions to be executed, or no
   availableactions: function(gs, evt) {

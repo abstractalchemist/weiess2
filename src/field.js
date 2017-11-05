@@ -28,13 +28,17 @@ function processbackground(img, status) {
 
 }
 
-function Card({ui,gs,obs,card}) {
+function Card({ui,gs,obs,card,rotate}) {
+    
     card = card || { active: {}, info: {} }
     let style = Object.assign({}, master);
     if(card.info.image) {
 	style['background'] = processbackground(card.info.image)
     }
-    return (<div className="mdl-card game-card" > 
+    let css_style = "mdl-card game-card"
+    if(rotate) 
+	css_style += " level"
+    return (<div className={css_style} > 
 	    <div className="mdl-card__title" style={style}>
 	    {card.info.title}
 	    </div>
@@ -325,7 +329,7 @@ function fieldReverse({game_state,obs}, controller) {
 		  </CardSlot>]  // memory
 	
     let back = [ <CardSlot id='climax-player2' key='climax-player2' >
-		 <Card card={gs.climax[0]}/>
+		 <Card card={gs.climax[0]} rotate={true}/>
 		 </CardSlot>, // climax
 		 
 		 <SpacerSlot key='spacer-3' id='spacer-3' width={3} />, //spacer
@@ -393,7 +397,7 @@ function field({game_state,obs}, controller) {
 		  </CardSlot>]  // memory
 	
     let back = [ <CardSlot id='climax-player1' key='climax-player1' >
-		 <Card card={gs.climax[0]}/>
+		 <Card card={gs.climax[0]} rotate={true}/>
 		 </CardSlot>, // climax
 		 
 		 <SpacerSlot key='spacer-8' id='spacer-8' width={1} />, //spacer

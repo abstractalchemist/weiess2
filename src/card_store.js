@@ -1,6 +1,9 @@
 import Http from 'utils';
 import { Observable } from 'rxjs'
 import { Status } from './battle_const'
+
+import VS from './mappings/vivid_strike'
+
 export default (function() {
 
     const internalmapper = card => {
@@ -8,18 +11,24 @@ export default (function() {
 	let power = parseInt(card.power)
 	let soul = parseInt(card.soul)
 	let cost = parseInt(card.cost)
-	return {
-	    info:Object.assign({},card,{ title:card.name,level, power, soul, cost }),
-	    status:Status.stand(), 
-	    active:{
-		power:0,
-		level,
-		power,
-		soul,
-		cost
-		
-	    }
+	let abilities = {}
+	if(VS[card.id]) {
+	    abilities = VS[card.id]
 	}
+	return Object.assign({},
+			     {
+				 info:Object.assign({},card,{ title:card.name,level, power, soul, cost }),
+				 status:Status.stand(), 
+				 active:{
+				     power:0,
+				     level,
+				     power,
+				     soul,
+				     cost
+				     
+				 }
+			     },
+			     abilities)
     }
 
     

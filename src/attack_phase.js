@@ -26,7 +26,7 @@ const AttackPhase = function(gs, ui, controller) {
 	player = player || currentplayer(gs)
 	let stage = G.stage(gs, player)
 	let c = undefined;
-	return iscard( c= stage.getIn(pos).first()) && Status.stand(c)
+	return iscard( c= stage.getIn(pos).first()) && Status.stand(c) && !Status.not_attack(c)
     }
 
     const isempty = (pos, player) => {
@@ -117,8 +117,9 @@ const AttackPhase = function(gs, ui, controller) {
 			}
 			actions.push({
 			    exec() {
-				
-				return of(gs)
+				_pos = undefined;
+				_attack_type = 'pass'
+				return of(gs.updateIn([currentplayer(gs), 'stage'].concat(pos1), cards => cards.update(0, card => card.updateIn(['status'], _ => Status.not_attack()))))
 			    },
 			    desc: "pass"
 			})

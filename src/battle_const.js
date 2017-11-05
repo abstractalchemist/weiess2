@@ -15,12 +15,22 @@ const Triggers = {
 const Status = {
     stand(arg) {
 	if(Map.isMap(arg))
-	    return arg.getIn(['status']) === 'stand'
+	    return arg.getIn(['status']) === 'stand' || arg.getIn(['status']) === 'not-attacking'
 	if(List.isList(arg))
-	    return arg.size > 0 && arg.first().getIn(['status']) === 'stand'
+	    return arg.size > 0 && (arg.first().getIn(['status']) === 'stand' || arg.first().getIn(['status']) === 'not-attacking') 
 	else if (arg)
-	    return arg.status === 'stand'
+	    return arg.status === 'stand' || arg.status === 'not-attacking'
 	return 'stand'
+    },
+    not_attack(arg) {
+	if(Map.isMap(arg))
+	    return arg.getIn(['status']) === 'not-attacking'
+	if(List.isList(arg))
+	    return arg.size > 0 && arg.first().getIn(['status']) === 'not-attacking'
+	else if (arg)
+	    return arg.status === 'not-attacking'
+	return 'not-attacking'
+
     },
     rest(arg) {
 	if(Map.isMap(arg))
