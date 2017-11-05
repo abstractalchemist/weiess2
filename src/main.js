@@ -456,6 +456,10 @@ class Main extends React.Component {
 	    updateCardView:this.updateCardView.bind(this),
 	    is_building:this.state.is_building,
 	    cardset_coll:this.state.cardset_coll,
+	    cardset_filter:this.state.filter_cards,
+	    filterCardSet: evt => {
+		this.setState({filter_cards:evt.currentValue.value})
+	    },
 	    addhandler2:(this.state.load_mode === 'place_cards' ? this.addFromSetToField.bind(this) : undefined),
 	    addFilterOptions:[
 		    <div style={{width:"100%"}}/>,
@@ -463,6 +467,7 @@ class Main extends React.Component {
 		    <button className="mdl-button mdl-js-button mdl-button--raised" onClick={this.stockItNow.bind(this)}>
 		    Fill Stock
 		</button>,
+		    <div style={{width:"100%"}}/>,
 		    <TextField label="Deck Count" id="deck-count" value={this.state.deck_it} changehandler={this.deckIt.bind(this)}/>,
 		    <button className="mdl-button mdl-js-button mdl-button--raised" onClick={this.deckItNow.bind(this)}>
 		    Fill Deck
@@ -542,7 +547,7 @@ class Main extends React.Component {
 		<Body>
 
 
-		<section className="mdl-layout__tab-panel" id="fixed-tab-2">
+		<section className="mdl-layout__tab-panel game-field" id="fixed-tab-2">
 		<div className="page-content">
 
 		<div className="mdl-grid">

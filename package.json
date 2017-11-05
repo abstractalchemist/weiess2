@@ -21,16 +21,17 @@
     "gulp-connect": "^5.0.0",
     "gulp-mocha": "^4.3.1",
     "jsdom": "^11.3.0",
-      "vinyl-source-stream": "^1.1.0",
-      "ui-utils": "git+ssh://git@github.com/abstractalchemist/ui-utils.git#v0.0.0.5",
-      "utils": "git+ssh://git@github.com/abstractalchemist/utils.git#v0.0.0.2",
-      "weiss-utils": "git+ssh://git@github.com/abstractalchemist/weiss-utils.git#v0.0.0.2"
+      "vinyl-source-stream": "^1.1.0"
 
   },
   "dependencies": {
     "immutable": "4.0.0-rc.9",
     "react": "^16.0.0",
     "react-dom": "^16.0.0",
-    "rxjs": "^5.5.2"
+      "rxjs": "^5.5.2",
+      "ui-utils": "git+ssh://git@github.com/abstractalchemist/ui-utils.git#v0.0.0.5",
+      "utils": "git+ssh://git@github.com/abstractalchemist/utils.git#v0.0.0.2",
+      "weiss-utils": "git+ssh://git@github.com/abstractalchemist/weiss-utils.git#v0.0.0.2"
+
   }
 }

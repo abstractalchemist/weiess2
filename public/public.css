@@ -1,3 +1,10 @@
+
+@media screen and (min-width:1500px) {
+    .game-field {
+	margin-left:calc((100% - 1500px)/2)
+    }
+}    
+
 .spacer {
     height:10rem;
 }
@@ -12,9 +19,9 @@
 }
 
 .game-card .mdl-card__title {
-
     height:240px;
-    background:no-repeat center/80% url(http://www.lilakihabara.com/wp-content/uploads/2016/06/ws_cardback_600px.png);
+    width:190px;
+    background:no-repeat center/contain url(http://www.lilakihabara.com/wp-content/uploads/2016/06/ws_cardback_600px.png);
 }
 
 .level {
@@ -35,3 +42,14 @@
     height:100%;
     width:100%;
 }
+
+.game-field {
+    max-width:1500px;
+    min-width:1500px;
+//    margin-left:calc((100% - 1500px)/2);
+}
+
+.mdl-layout__content {
+    overflow:auto;
+}
+
