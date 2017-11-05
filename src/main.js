@@ -62,7 +62,7 @@ class Main extends React.Component {
 		//		setTimeout(this.turn.bind(this), 2000)
 	    }
 	    else {
-//		console.log(`actions? ${a}, prompts ${b}`)
+		console.log(`actions? ${a}, prompts ${b}`)
 	    }
 	}
 	else {

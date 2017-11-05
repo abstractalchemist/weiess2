@@ -1,5 +1,5 @@
 import { expect } from 'chai'
-import { applyActions ,debug, iscard, findopenpositions, isevent, isclimax, canplay, payment, findcardonstage, findstageposition, G, dealdamage, clockDamage, hasavailableactions, clearactions, reset, applyAutomaticAbilities  } from '../src/utils'
+import { applyActions ,debug, findopenpositions, isevent, isclimax, canplay, payment, findcardonstage, findstageposition, G, dealdamage, clockDamage, hasavailableactions, clearactions, reset, applyAutomaticAbilities  } from '../src/utils'
 import { validatefield } from '../src/field_utils'
 import GameStateFactory from '../src/game_state'
 import { basecard, basestack, init } from './utils'
@@ -76,14 +76,6 @@ describe('utils test', function() {
 	validatefield(gs)
     })
     
-    it('iscard', function() {
-	let [gs, c] = init('main', 0)
-	expect(iscard(basecard())).to.be.true;
-	expect(iscard(Map())).to.be.false;
-	expect(iscard(List())).to.be.false;
-	expect(iscard(undefined)).to.be.false
-	
-    })
     
     it('findopenpositions', function() {
 	let [gs, c] = init('main', 0)

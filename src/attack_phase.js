@@ -1,5 +1,5 @@
 import { Observable } from 'rxjs'
-import { cardviewer, updateUIFactory, applyActions, clearactions, hasavailableactions, isclimax, findcardonstage, findstageposition, iscard, dealdamage, clockDamage, applyAutomaticAbilities} from './utils'
+import { cardviewer, updateUIFactory, applyActions, clearactions, hasavailableactions, isclimax, findcardonstage, findstageposition, dealdamage, clockDamage, applyAutomaticAbilities} from './utils'
 
 import { collectactivateablecards } from './modifiers'
 import { drawfromdeck, refresh, applyrefreshdamage, searchwaitingroom } from './deck_utils'
@@ -12,7 +12,8 @@ import { Triggers, Status } from './battle_const'
 import { PoolFunction, DrawFunction, TreasureFunction } from './triggerfunctions'
 import React from 'react'
 import { power_calc, soul_calc, level_calc } from './modifiers'
-import { G } from './field_utils'
+import { G, iscard } from './field_utils'
+import { checkbattleconditions } from './battle_utils'
 const AttackPhase = function(gs, ui, controller) {
 
 //    let _attacking_card = undefined
@@ -241,30 +242,38 @@ const AttackPhase = function(gs, ui, controller) {
 		    }
 		    return of(gs)
 		})
- 		.mergeMap(gs => {
+		.mergeMap(checkbattleconditions(this.resolve.bind(this), gs => {
+		    _gs = gs;
+		}))
+ 		// .mergeMap(gs => {
 		    
-		    // true if there is no card, or the card is actually resting
-		    const is_stage_resting = stack => {
-			let c;
-			if(List.isList(stack) && stack.size > 0 && iscard(c = stack.first())) {
-			    return !Status.stand(c)
-			}
-			return true
-		    }
+		//     // true if there is no card, or the card is actually resting
+		//     const is_stage_resting = stack => {
+		// 	let c;
+		// 	if(List.isList(stack) && stack.size > 0 && iscard(c = stack.first())) {
+		// 	    //			    return !(Status.not_attack(c) || Status.stand(c))
+
+		// 	    let rested = Status.rest(c)
+		// 	    let reversed = Status.reversed(c)
+		// 	    console.log(`rested ${rested} || reversed ${reversed}`)
+		// 	    return rested || reversed
+		// 	}
+		// 	return true
+		//     }
 		    
-		    let stage_cl = gs.getIn([currentplayer(gs), 'stage', 'center','left'])
-		    let stage_cm = gs.getIn([currentplayer(gs), 'stage', 'center','middle'])
-		    let stage_cr = gs.getIn([currentplayer(gs), 'stage', 'center','right'])
-		    _gs = gs
-		    if(!(is_stage_resting(stage_cl) && is_stage_resting(stage_cm) && is_stage_resting(stage_cr))) {
+		//     let stage_cl = gs.getIn([currentplayer(gs), 'stage', 'center','left'])
+		//     let stage_cm = gs.getIn([currentplayer(gs), 'stage', 'center','middle'])
+		//     let stage_cr = gs.getIn([currentplayer(gs), 'stage', 'center','right'])
+		//     _gs = gs
+		//     if(!(is_stage_resting(stage_cl) && is_stage_resting(stage_cm) && is_stage_resting(stage_cr))) {
 			
-			return this.resolve()
-		    }
-		    else {
+		// 	return this.resolve()
+		//     }
+		//     else {
 			
-			return of(_gs)
-		    }
-		})
+		// 	return of(_gs)
+		//     }
+		// })
 		.mergeMap(this.updateUI({evt:"attack_encore"}, true))
 		.mergeMap(gs => this.encore(gs))
 	    

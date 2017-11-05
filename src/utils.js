@@ -270,7 +270,8 @@ const hasavailableactions = function(gs, field) {
 		//	    console.log(T)
 		if(iscard(T)) {
 		    let a, b;
-		    hasactions = (a = List.isList(T.getIn(['actions'])) && T.getIn(['actions']).size > 0) || (b = List.isList(T.getIn(['cardactions'])) && T.getIn(['cardactions']).size > 0)
+		    if(hasactions = (a = List.isList(T.getIn(['actions'])) && T.getIn(['actions']).size > 0) || (b = List.isList(T.getIn(['cardactions'])) && T.getIn(['cardactions']).size > 0))
+			console.log(`${T.getIn(['info','id'])} has actions`)
  		    // if(hasactions) {
 		    // 	console.log(`${T.getIn(['info','name'])} has actions ${a} and cardactions ${b}`)
 		    // 	if(a) {
@@ -282,7 +283,8 @@ const hasavailableactions = function(gs, field) {
 		else if(List.isList(T) && iscard(T.first())) {
 		    let a,b
 		    T = T.first()
-		    hasactions = (a = List.isList(T.getIn(['actions'])) && T.getIn(['actions']).size > 0) || (b = List.isList(T.getIn(['cardactions'])) && T.getIn(['cardactions']).size > 0)
+		    if(hasactions = (a = List.isList(T.getIn(['actions'])) && T.getIn(['actions']).size > 0) || (b = List.isList(T.getIn(['cardactions'])) && T.getIn(['cardactions']).size > 0))
+			console.log(`${T.getIn(['info','id'])} has actions`)
 		    // if(hasactions) {
 		    // 	console.log(`${T.getIn(['info','name'])} has actions ${a} and cardactions ${b}`)
 		    // 	if(a) {
@@ -341,8 +343,10 @@ const resetplayer = (gs, player) => {
     let climax = gs.getIn([player, 'climax'])
     if(List.isList(climax) && climax.size > 0 && isclimax(climax.first())) {
 	gs = gs.updateIn([player, 'climax'], _ => List())
-	    .updateIn([player, 'waiting_room',], wr => climax.concat(wr))
+	    .updateIn([player, 'waiting_room'], wr => climax.concat(wr))
     }
+    gs = gs.updateIn([player, 'waiting_room'], wr => wr.map(resetcard))
+    gs = gs.updateIn([player, 'stock'], wr => wr.map(resetcard))
     return gs
 	.updateIn([player, 'stage', 'center', 'left'], resetcard)
     	.updateIn([player, 'stage', 'center', 'middle'], resetcard)
@@ -552,4 +556,4 @@ const applyAutomaticAbilities = (evt, ui, gs) => {
     return of(gs)
 }
 
-export { applyActions ,debug, iscard, findopenpositions, isevent, isclimax, canplay, payment, findcardonstage, findstageposition, dealdamage, clockDamage, hasavailableactions, clearactions, reset, updateUIFactory, cardviewer, applyAutomaticAbilities, processAbility }
+export { applyActions ,debug, findopenpositions, isevent, isclimax, canplay, payment, findcardonstage, findstageposition, dealdamage, clockDamage, hasavailableactions, clearactions, reset, updateUIFactory, cardviewer, applyAutomaticAbilities, processAbility }
