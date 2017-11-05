@@ -10,7 +10,9 @@ function StageSelector({onselect, openpositions, selectioncount}) {
     let click = evt => {
 	//	onselect(openpositions[0])
 	let d = document.querySelector('#stage-select table tr.is-selected')
-	document.querySelector('#stage-select').close()
+	let dialog = document.querySelector('#stage-select');
+	if(dialog)
+	    dialog.close()
 	if(d) {
 	    let stage = d.dataset.stage
 	    let pos = d.dataset.pos

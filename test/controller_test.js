@@ -201,46 +201,65 @@ describe('ControllerFactory', function() {
 		})
     })
 
-    xit('main - play a card', function(done) {
+    it('main - play a card', function(done) {
 	//	let passes = 0;
 	let [gs, controller] = init('main', 0, {
 	    updateUI(gs, obs, evt) {
+		
 		let hand = G.hand(gs)
-		if(hasavailableactions(gs, 'hand')) {
+		let hasavail;
+		if(hasavail  = hasavailableactions(gs, 'hand')) {
+		    console.log('process actions')
 		    let card = hand.first();
 		    
 		    let exec = undefined;
 		    if(exec = C.firstaction(card)) {
-
-			// exec called means this card is played
-			exec().subscribe(gs => {
-			    obs.next(gs)
-			    obs.complete();
-			})
+		 	//bconsole.log(`execing ${exec}`)
+		// 	// exec called means this card is played
+		 	exec().subscribe(gs => {
+		 	    obs.next(gs)
+		 	    obs.complete();
+		 	})
 		    }
-		    else if(obs) {
+		//     else if(obs) {
 			
-			obs.next(gs)
-			obs.complete()
-		    }
+		// 	obs.next(gs)
+		// 	obs.complete()
+		//     }
 		}
 
-		// the test empties the hand, so we quite
-		else if(obs) {
+		// // the test empties the hand, so we quite
+ 		else if(obs) {
+		    console.log(`has actions: ${hasavail}`)
 		    obs.next(gs.setIn(['endmainphase'], true))
 		    obs.complete()
 		}
 	    },
-	    prompt:createprompt()
+	    prompt(promptfunc) {
+		return create(obs => {
+ 		    let { prompt, id } = promptfunc(gs => {
+			obs.next(gs)
+			obs.complete()
+		    })
+		    mount(prompt).find('#ok').simulate('click')
+		})
+	    },
+	    closeCurrentPrompt() {
+	    }
 	})
 	controller.updategamestate(gs = gs.updateIn([currentplayer(gs), 'hand'],
-						    hand => hand.push(basecard(1000, 0).updateIn(['info','level'], _ => 0).updateIn(['passiveactions'], _ => {
+						    hand => hand.push(basecard(1000, 0)
+								      .updateIn(['info','level'], _ => 0)
+								      .updateIn(['active','level'], _ => 0)
+								      .updateIn(['passiveactions'], _ => {
 							return (gs, evt) => {
-
-							    
-							    if(evt.evt === 'play' && evt.id === 0) {
+							    console.log(`************************************* running ${evt.evt}`)
+							    if(evt.evt === 'main' && evt.id === 0) {
+								
 								let [card, pos] = findcardonstage(gs, evt.id)
+								
 								if(iscard(card)) {
+								
 								    return gs.updateIn([currentplayer(gs), 'stage'], stage => {
 									return stage.updateIn(pos, c => {
 									    return c.update(0, card => {
@@ -255,6 +274,9 @@ describe('ControllerFactory', function() {
 									})
 								    })
 								}
+								else
+								    console.log(`passive actions not applied ont ${evt.evt}, ${evt.id}`)
+							    
 								
 							    }
 							    return gs;
@@ -275,7 +297,8 @@ describe('ControllerFactory', function() {
 		_ => {
 		    let c = undefined;
 		    expect(iscard(c = gs.getIn([currentplayer(gs), 'stage', 'center','left']).first())).to.be.true;
-		    expect(c.getIn(['active', 'power'])(gs)).to.be.equal(2000)
+		    
+		    expect(c.getIn(['active', 'power'])).to.be.equal(1000)
 		    done()
 		})
 	

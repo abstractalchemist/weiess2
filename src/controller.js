@@ -4,7 +4,7 @@ import StageSelector from './stageselector'
 const { of, create } = Observable;
 import { isImmutable, List, fromJS } from 'immutable'
 import GamePositions, { currentplayer, inactiveplayer } from './game_pos'
-import { applyActions, reset, shuffle, debug, iscard, findopenpositions, isevent, isclimax, canplay, payment, clockDamage, clearactions, hasavailableactions,  updateUIFactory, cardviewer, applyAutomaticAbilities } from './utils'
+import { applyActions, reset, shuffle, debug, iscard, findopenpositions, isevent, isclimax, canplay, payment, clockDamage, clearactions, hasavailableactions,  updateUIFactory, cardviewer, applyAutomaticAbilities, processAbility } from './utils'
 import { collectactivateablecards } from './modifiers'
 import { G, validatefield } from './field_utils'
 import { refresh, applyrefreshdamage, searchdeck, drawfromdeck } from './deck_utils'
@@ -71,7 +71,7 @@ const ControllerFactory = function(game_state) {
 
 
 
-    let playcard = (gs, card, deststage, destpos) => {
+    const playcard = (gs, card, deststage, destpos) => {
 
 	if(canplay(gs, card)) {
  	    let cost = card.getIn(['info','cost'])
@@ -88,8 +88,11 @@ const ControllerFactory = function(game_state) {
 		gs = payment(cost)(gs)
 	    }
 	    if(deststage === 'event') {
-		
-		////////////// TODO ////////////////////
+		let func;
+		if(func = card.getIn(['auto_abilities'])) {
+		    let fs = func({evt:'play'}, gs)
+		    return processAbility(0, fs, ui, {evt:'play'}, gs)
+		}
 	    }
 	    else {
 		let dest = gs.getIn([currentplayer(gs), 'stage', deststage, destpos])
@@ -100,9 +103,9 @@ const ControllerFactory = function(game_state) {
 		    return cards.insert(0, card)
 		})
 	    }
-	    return gs
-	}
 
+	}
+	return of(gs)
     }
 
     let updateUI;
@@ -448,18 +451,18 @@ const ControllerFactory = function(game_state) {
 					    prompt:
 						<StageSelector onselect={
 						    ([deststage, destpos]) => {
-							return of(playcard(gs, h, deststage, destpos))
+							return playcard(gs, h, deststage, destpos)
 							    .map(clearactions)
-							    .do(_ => ui.closeCurrentPrompt())
+							    .do(_ => _ui.closeCurrentPrompt())
 							    .mergeMap(gs => {
-								return applyAutomaticAbilities({ evt: "play", id:h.getIn(['info','id']) }, ui, gs)
+								return applyAutomaticAbilities({ evt: "play", id:h.getIn(['info','id']) }, _ui, gs)
 							    })
 							    .subscribe(
 								gs => {
 								    obs(gs)
 								},
 								err => {
-								    alert(err)
+								    throw new Error(err)
 								},
 								_ => {
 								})
@@ -530,6 +533,8 @@ const ControllerFactory = function(game_state) {
 					if(index >= 0 && isclimax(card)) {
 					    return of(gs.updateIn([currentplayer(gs), 'hand'], hand => hand.delete(index)).updateIn([currentplayer(gs), 'climax'], _ => List().push(card)))
 					}
+
+					// climax effects handled here if it requires user input, otherwise it's a passive
 					return applyAutomaticAbilities({ evt: "play", id:card.getIn(['info','id']) }, ui, gs)
 				    },
 				    desc: "Play climax card"

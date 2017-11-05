@@ -297,11 +297,19 @@ const hasavailableactions = function(gs, field) {
     else {
 	if(!Array.isArray(field))
 	    field = [field]
-	gs.getIn([currentplayer(gs)]).getIn(field).forEach(T => {
+	console.log(`looking at field ${field}`)
+	gs.getIn([currentplayer(gs)].concat(field)).forEach(T => {
 	    if(!hasactions) {
+		
 		if(iscard(T)) {
-		    hasactions = (T.getIn(['actions']) && T.getIn(['actions']).size > 0) || (T.getIn(['cardactions']) && T.getIn(['cardactions']).size > 0)
+		    //		    hasactions = (T.getIn(['actions']) && T.getIn(['actions']).size > 0) || (T.getIn(['cardactions']) && T.getIn(['cardactions']).size > 0)
+		    let a, b;
+//		    console.log(`looking at ${T}`)
+		    hasactions = (a = List.isList(T.getIn(['actions'])) && T.getIn(['actions']).size > 0) || (b = List.isList(T.getIn(['cardactions'])) && T.getIn(['cardactions']).size > 0)
 		}
+	    // 	else {
+	    // 	    console.log(`${T} is not a card`)
+	    // 	}
 	    }
 	})
     }
@@ -319,6 +327,7 @@ const resetcard = (card) => {
 	return card
 	    .updateIn(['active'], active => {
 		return active.setIn(['power'], info.getIn(['power']))
+		    .setIn(['cost'], info.getIn(['cost']))
 		    .setIn(['soul'], info.getIn(['soul']))
 		    .setIn(['level'], info.getIn(['level']))
 	    })
@@ -329,12 +338,18 @@ const resetcard = (card) => {
 }
 
 const resetplayer = (gs, player) => {
+    let climax = gs.getIn([player, 'climax'])
+    if(List.isList(climax) && climax.size > 0 && isclimax(climax.first())) {
+	gs = gs.updateIn([player, 'climax'], _ => List())
+	    .updateIn([player, 'waiting_room',], wr => climax.concat(wr))
+    }
     return gs
 	.updateIn([player, 'stage', 'center', 'left'], resetcard)
     	.updateIn([player, 'stage', 'center', 'middle'], resetcard)
     	.updateIn([player, 'stage', 'center', 'right'], resetcard)
     	.updateIn([player, 'stage', 'back', 'left'], resetcard)
     	.updateIn([player, 'stage', 'back', 'right'], resetcard)
+	
 }
 
 // reset all cards
@@ -537,4 +552,4 @@ const applyAutomaticAbilities = (evt, ui, gs) => {
     return of(gs)
 }
 
-export { applyActions ,debug, iscard, findopenpositions, isevent, isclimax, canplay, payment, findcardonstage, findstageposition, dealdamage, clockDamage, hasavailableactions, clearactions, reset, updateUIFactory, cardviewer, applyAutomaticAbilities }
+export { applyActions ,debug, iscard, findopenpositions, isevent, isclimax, canplay, payment, findcardonstage, findstageposition, dealdamage, clockDamage, hasavailableactions, clearactions, reset, updateUIFactory, cardviewer, applyAutomaticAbilities, processAbility }
