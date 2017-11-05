@@ -4,7 +4,7 @@ import StageSelector from './stageselector'
 const { of, create } = Observable;
 import { isImmutable, List, fromJS } from 'immutable'
 import GamePositions, { currentplayer, inactiveplayer } from './game_pos'
-import { applyActions, reset, shuffle, debug, iscard, findopenpositions, isevent, isclimax, canplay, payment, clockDamage, clearactions, hasavailableactions,  updateUIFactory, cardviewer } from './utils'
+import { applyActions, reset, shuffle, debug, iscard, findopenpositions, isevent, isclimax, canplay, payment, clockDamage, clearactions, hasavailableactions,  updateUIFactory, cardviewer, applyAutomaticAbilities } from './utils'
 import { collectactivateablecards } from './modifiers'
 import { G, validatefield } from './field_utils'
 import { refresh, applyrefreshdamage, searchdeck, drawfromdeck } from './deck_utils'
@@ -38,6 +38,9 @@ import { Status } from './battle_const'
      level(card,gs)
      cost(card,gs)
  }
+
+// returns auto abilities that active based on an event;  must return a (func => { prompt, id }) function to prompt the user to take an action
+  auto_abilities(a,evt) 
 
   // this is a function which return a list of { exec, desc } actions to be executed, or no
   availableactions: function(gs, evt) {
@@ -447,8 +450,10 @@ const ControllerFactory = function(game_state) {
 						    ([deststage, destpos]) => {
 							return of(playcard(gs, h, deststage, destpos))
 							    .map(clearactions)
-							    .do(_ => _ui.prompt(undefined))
-							    .mergeMap(updateUI({ evt: "play", id:h.getIn(['info','id']) }, true))
+							    .do(_ => ui.closeCurrentPrompt())
+							    .mergeMap(gs => {
+								return applyAutomaticAbilities({ evt: "play", id:h.getIn(['info','id']) }, ui, gs)
+							    })
 							    .subscribe(
 								gs => {
 								    obs(gs)
@@ -525,7 +530,7 @@ const ControllerFactory = function(game_state) {
 					if(index >= 0 && isclimax(card)) {
 					    return of(gs.updateIn([currentplayer(gs), 'hand'], hand => hand.delete(index)).updateIn([currentplayer(gs), 'climax'], _ => List().push(card)))
 					}
-					return of(gs)
+					return applyAutomaticAbilities({ evt: "play", id:card.getIn(['info','id']) }, ui, gs)
 				    },
 				    desc: "Play climax card"
 				    

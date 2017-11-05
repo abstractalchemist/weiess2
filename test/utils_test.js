@@ -1,5 +1,5 @@
 import { expect } from 'chai'
-import { applyActions ,debug, iscard, findopenpositions, isevent, isclimax, canplay, payment, findcardonstage, findstageposition, G, dealdamage, clockDamage, hasavailableactions, clearactions, reset  } from '../src/utils'
+import { applyActions ,debug, iscard, findopenpositions, isevent, isclimax, canplay, payment, findcardonstage, findstageposition, G, dealdamage, clockDamage, hasavailableactions, clearactions, reset, applyAutomaticAbilities  } from '../src/utils'
 import { validatefield } from '../src/field_utils'
 import GameStateFactory from '../src/game_state'
 import { basecard, basestack, init } from './utils'
@@ -9,6 +9,7 @@ import { Map, fromJS, List } from 'immutable'
 import { Observable } from 'rxjs'
 const { create } = Observable;
 import { mount } from 'enzyme'
+import React from 'react'
 describe('utils test', function() {
     it('init', function() {
 	let obj = GameStateFactory()
@@ -173,7 +174,7 @@ describe('utils test', function() {
 		    let p = mount(prompt)
 		    p.find('#ok').simulate('click')
 		})
-					  
+		
 	    }
 	})
 
@@ -187,13 +188,13 @@ describe('utils test', function() {
 	    }))
 	    obs.subscribe(
 		gs => {
-		expect(gs).to.not.be.null
-		validatefield(gs)
+		    expect(gs).to.not.be.null
+		    validatefield(gs)
 		    
 		},
 		err => done(err),
 		_ => done())
-				  
+	    
 	    
 	})
 	
@@ -235,6 +236,110 @@ describe('utils test', function() {
 	l.concat(List().push(undefined)).forEach(T => {
 	    console.log(T)
 	})
+    })
+
+    it('test applyAutomaticAbilities', function(done) {
+	let ui;
+	let [gs, c] = init('main', 0, ui = {
+	    prompt(func) {
+		return create(obs => {
+		    let {prompt, id} = func(gs => {
+			obs.next(gs)
+			obs.complete()
+		    })
+		    mount(prompt).find('#ok').simulate('click')
+		})
+	    }
+	})
+	let card = basecard(1000).updateIn(['auto_abilities'],
+					   _ => {
+					       return (evt, gs) => {
+						   if(evt.evt === 'play' && evt.id == card.getIn(['info','id'])) {
+						       console.log("condition met, activating event")
+						       return fromJS([
+							   (evt, gs) => {
+							       return func => {
+								   return {
+								       prompt:(<dialog id='test-dialog'>
+									       <div className="mdl-dialog__actions">
+									       <button id="ok" className="mdl-button mdl-js-button" onClick={
+										   
+										   evt => {
+										       console.log('invoking func')
+										       func(gs)
+										   }
+									       }>
+									       OK
+									       </button>
+									       </div>
+									       </dialog>),
+								       id:'test-dialog'
+								   }
+							       }
+							   }
+						       ])
+						   }
+						   return fromJS([])
+					       }
+					       
+					   })
+	let card2 = basecard(1000).updateIn(['auto_abilities'],
+					    _ => {
+						return (evt, gs) => {
+						    if(evt.evt === 'play') {
+							console.log(`condition met, activating event in response to ${evt.id}`)
+							return fromJS([
+							    (evt, gs) => {
+								return func => {
+								    return {
+									prompt:(<dialog id='test-dialog'>
+										<div className="mdl-dialog__actions">
+										<button id="ok" className="mdl-button mdl-js-button" onClick={
+										    
+										    evt => {
+											console.log('invoking func')
+											func(gs)
+										    }
+										}>
+										OK
+										</button>
+										</div>
+										</dialog>),
+									id:'test-dialog'
+								    }
+								}
+							    }
+							])
+						    }
+						    return fromJS([])
+						}
+						
+					    })
+	gs = gs.updateIn([currentplayer(gs), 'stage', 'center','left'], stage => stage.push(card)).updateIn([currentplayer(gs), 'stage','center','right'], stage => stage.push(card2))
+	applyAutomaticAbilities({evt:'play', id:card.getIn(['info','id'])}, ui, gs)
+	    .subscribe(
+		g => {
+		    gs = g
+		},
+		err => done(err),
+		_ => {
+		    done()
+		})
+    })
+
+    it('applyAutomaticAbilities passthrough', function(done) {
+	let ui;
+	let [gs, c] = init('main', 0, ui = {
+	})
+	applyAutomaticAbilities({evt:'reversed'}, ui, gs)
+	    .subscribe(
+		g => {
+		    gs = g
+		},
+		err => done(err),
+		_ => {
+		    done()
+		})
     })
 
 })

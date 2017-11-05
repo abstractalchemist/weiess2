@@ -443,7 +443,7 @@ const updateUIFactory = function(ui, and) {
     return function(evt, ignoreprompt, func) {
 	//	console.log(`*********************** ui ${ui}, evt ${evt} ****************************`)
 
-	return function(gs)  {
+	const functor = function(gs)  {
 	    console.log(`running event ${evt.evt}`)
 	    //	    console.log(`gs? ${gs}`)
 	    let f = func || (o => (gs => {
@@ -457,7 +457,9 @@ const updateUIFactory = function(ui, and) {
 	    return create(obs => {
 		ui.updateUI(applyActions(gs,evt, ui, f(obs)), obs, evt, ignoreprompt)
 	    })
+	
 	}
+	return functor;
     }
 }
 
@@ -503,5 +505,36 @@ function cardviewer(ui) {
     }
 }
 
+const processAbility = (i, abilities, ui, evt, gs) => {
+    if(i < abilities.size) {
+	let a = abilities.get(i)
+	
+	// this is gs => Observable function
+	// a is a function which returns a (func => { prompt, id }) function
+	return ui.prompt(a(evt, gs))
+	    .mergeMap(gs => {
+		return processAbility(i + 1, abilities, ui, evt, gs)
+	    })
+    }
+    return of(gs)
+}
 
-export { applyActions ,debug, iscard, findopenpositions, isevent, isclimax, canplay, payment, findcardonstage, findstageposition, dealdamage, clockDamage, hasavailableactions, clearactions, reset, updateUIFactory, cardviewer }
+const applyAutomaticAbilities = (evt, ui, gs) => {
+    let activecards = collectactivateablecards(gs)
+    let activeabilities = activecards.map(c => {
+	let func;
+	if(iscard(c) && (func = c.getIn(['auto_abilities']))) {
+	    return func(evt, gs)
+	}
+	return List()
+    })
+	.reduce( (R,T) => {
+	    return R.concat(T)
+	}, List())
+    if(activeabilities.size > 0) {
+	return processAbility(0, activeabilities, ui, evt, gs)
+    }
+    return of(gs)
+}
+
+export { applyActions ,debug, iscard, findopenpositions, isevent, isclimax, canplay, payment, findcardonstage, findstageposition, dealdamage, clockDamage, hasavailableactions, clearactions, reset, updateUIFactory, cardviewer, applyAutomaticAbilities }

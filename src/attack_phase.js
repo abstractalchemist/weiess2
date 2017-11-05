@@ -1,5 +1,5 @@
 import { Observable } from 'rxjs'
-import { cardviewer, updateUIFactory, applyActions, clearactions, hasavailableactions, isclimax, findcardonstage, findstageposition, iscard, dealdamage, clockDamage} from './utils'
+import { cardviewer, updateUIFactory, applyActions, clearactions, hasavailableactions, isclimax, findcardonstage, findstageposition, iscard, dealdamage, clockDamage, applyAutomaticAbilities} from './utils'
 
 import { collectactivateablecards } from './modifiers'
 import { drawfromdeck, refresh, applyrefreshdamage, searchwaitingroom } from './deck_utils'
@@ -504,6 +504,9 @@ const AttackPhase = function(gs, ui, controller) {
 			      return pos.update(0, _ => defending_card)
 			  })
 		      }))
+		.mergeMap(gs => {
+		    return applyAutomaticAbilities({evt:'reversed', defending_card, attacking_card}, ui, gs)
+		})
 	},
 
 	encore(gs) {
