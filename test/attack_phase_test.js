@@ -173,6 +173,8 @@ describe('attack_phase', function() {
 		    mount(prompt).find('#trigger-func-ok').simulate('click')
 		    
 		})
+	    },
+	    closeCurrentPrompt() {
 	    }
 	})
 	const a = AttackPhase(gs = populate_stage(gs, Triggers.treasure), ui)

@@ -32,6 +32,13 @@ import { Status } from './battle_const'
   
   },
 
+  continuous: {
+     power(card,gs)
+     soul(card,gs)
+     level(card,gs)
+     cost(card,gs)
+ }
+
   // this is a function which return a list of { exec, desc } actions to be executed, or no
   availableactions: function(gs, evt) {
   },

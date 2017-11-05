@@ -1,5 +1,5 @@
 import { Observable } from 'rxjs'
-import { cardviewer, updateUIFactory, applyActions, clearactions, hasavailableactions, isclimax, findcardonstage, findstageposition, iscard, dealdamage, clockDamage } from './utils'
+import { cardviewer, updateUIFactory, applyActions, clearactions, hasavailableactions, isclimax, findcardonstage, findstageposition, iscard, dealdamage, clockDamage} from './utils'
 
 import { collectactivateablecards } from './modifiers'
 import { drawfromdeck, refresh, applyrefreshdamage, searchwaitingroom } from './deck_utils'
@@ -164,23 +164,23 @@ const AttackPhase = function(gs, ui, controller) {
     // update ui with the given event
     // evt - the event that occurred
     // func - a function to be executed by any activated action; or force the stream to continue
-    const updateUI= (evt, ignoreprompt, func) => {
-	return gs1 => {
+    // const updateUI= (evt, ignoreprompt, func) => {
+    // 	return gs1 => {
 
-	    let f = func || (o => (gs => {
-		o.next(gs)
-		o.complete()
-	    }))
-	    //	    console.log(`in update, hasavailableactions ${hasavailableactions(gs1)}`)
-	    if(controller)
-		controller.updategamestate(gs1)
-	    return create(obs => {
- 		//		console.log(`in update, hasavailableactions ${hasavailableactions(gs1)}`)
+    // 	    let f = func || (o => (gs => {
+    // 		o.next(gs)
+    // 		o.complete()
+    // 	    }))
+    // 	    //	    console.log(`in update, hasavailableactions ${hasavailableactions(gs1)}`)
+    // 	    if(controller)
+    // 		controller.updategamestate(gs1)
+    // 	    return create(obs => {
+    // 		//		console.log(`in update, hasavailableactions ${hasavailableactions(gs1)}`)
 		
-		_ui.updateUI(applyActions(gs1, evt, _ui, f(obs)), obs, evt, ignoreprompt)
-	    })
-	}
-    }
+    // 		_ui.updateUI(applyActions(gs1, evt, _ui, f(obs)), obs, evt, ignoreprompt)
+    // 	    })
+    // 	}
+    // }
 
     
     return {
@@ -196,32 +196,34 @@ const AttackPhase = function(gs, ui, controller) {
 	    return _attack_type
 	},
 	
-	updateUI:updateUI,
+	updateUI:updateUIFactory(ui, gs => {
+	    if(controller) controller.updategamestate(gs)
+	}),
 	// runs through each phase
 	resolve() {
 	    return of(_gs)
 
 	    // select to card to attack with attack
-		.mergeMap(updateUI({evt:"attack_declare"}, true))
+		.mergeMap(this.updateUI({evt:"attack_declare"}, true))
 		.mergeMap(this.declare.bind(this))
-		.mergeMap(updateUI({evt:"attack_select"}, true))
+		.mergeMap(this.updateUI({evt:"attack_select"}, true))
 		.map(clearactions)
 		.mergeMap(gs => {
 //		    let attacking_card = _attacking_card
 		    if(_pos) {
 			return of(gs)
-			    .mergeMap(updateUI({evt:"attack_trigger"}, true))
+			    .mergeMap(this.updateUI({evt:"attack_trigger"}, true))
 			    .mergeMap(cardviewer(ui))
 			    .mergeMap(gs => this.trigger(gs))
 			    .map(applyrefreshdamage)
 			    .mergeMap(clockDamage(ui))
 			    .mergeMap(gs => {
 				if(_attack_type === 'front')
-				    return of(gs).mergeMap(updateUI({evt:"attack_counter"}, true))
+				    return of(gs).mergeMap(this.updateUI({evt:"attack_counter"}, true))
 				    .mergeMap(gs  => this.counter_attack(gs))
 				return of(gs)
 			    })
-			    .mergeMap(updateUI({evt:"attack_damage"}, true))
+			    .mergeMap(this.updateUI({evt:"attack_damage"}, true))
 			    .mergeMap(gs => this.damage(gs))
 			    .map(applyrefreshdamage)
 			    .mergeMap(clockDamage(ui))
@@ -230,7 +232,7 @@ const AttackPhase = function(gs, ui, controller) {
 				if(_attack_type === 'direct' || _attack_type === 'side')
 				    return of(gs)
 				return of(gs)
-				    .mergeMap(updateUI({evt:"attack_battle"}, true))
+				    .mergeMap(this.updateUI({evt:"attack_battle"}, true))
 				    .mergeMap(gs => this.battle_step(gs))
 			    })
 			
@@ -262,7 +264,7 @@ const AttackPhase = function(gs, ui, controller) {
 			return of(_gs)
 		    }
 		})
-		.mergeMap(updateUI({evt:"attack_encore"}, true))
+		.mergeMap(this.updateUI({evt:"attack_encore"}, true))
 		.mergeMap(gs => this.encore(gs))
 	    
 	},
@@ -286,6 +288,7 @@ const AttackPhase = function(gs, ui, controller) {
 	    }
 	    if(iscard(trigger_card)) {
 		let trigger_action = trigger_card.getIn(['info', 'trigger_action'])
+		console.log(`resolving ${trigger_action}`)
 		switch(trigger_action) {
 		case Triggers.soulgate: {
 		    attacking_card = attacking_card.updateIn(['active', 'soul'], soul => {
@@ -295,8 +298,8 @@ const AttackPhase = function(gs, ui, controller) {
 			    return 1 + soul
 			}
 		    })
-		    
-		    prompt = ui.prompt(searchwaitingroom(1, 'hand', isclimax, gs));
+		    if(gs.getIn([currentplayer(gs), 'waiting_room']).size > 0)
+			prompt = ui.prompt(searchwaitingroom(1, 'hand', isclimax, gs));
 		}
 		    break;
 		case Triggers.soul : {
@@ -328,12 +331,13 @@ const AttackPhase = function(gs, ui, controller) {
 			return {
 			    prompt:<PoolFunction onok={
 				evt => {
-				    
+				    ui.closeCurrentPrompt()
 				    func(drawfromdeck(1, 'stock', gs))
 				}
 			    }
 			    oncancel={
 				evt => {
+				    ui.closeCurrentPrompt()
 				    func(gs)
 				}
 			    }/>,
@@ -347,7 +351,8 @@ const AttackPhase = function(gs, ui, controller) {
 		    let filter = c => {
 			return iscard(c) && c.getIn(['info', 'power']) > 0
 		    }
-		    prompt = ui.prompt(searchwaitingroom(1, 'hand', filter, gs));
+		    if(gs.getIn([currentplayer(gs), 'waiting_room']).size > 0)
+			prompt = ui.prompt(searchwaitingroom(1, 'hand', filter, gs));
 		    gs = stock_trigger(gs)
 
 		}
@@ -358,11 +363,13 @@ const AttackPhase = function(gs, ui, controller) {
 			    id:'draw-function',
 			    prompt:<DrawFunction onok={
 				evet => {
+				    ui.closeCurrentPrompt()
 				    func(drawfromdeck(1,'hand',gs))
 				}
 			    }
 			    oncancel= {
 				evt => {
+				    ui.closeCurrentPrompt()
 				    func(gs)
 				}
 			    }/>
@@ -381,7 +388,7 @@ const AttackPhase = function(gs, ui, controller) {
 			return {
 			    prompt:<TreasureFunction onok={
 				evt => {
-				    
+				    ui.closeCurrentPrompt()
 				    gs = drawfromdeck(1, 'stock', gs)
 
 				    func(gs = gs.updateIn([currentplayer(gs), 'hand'], hand => hand.push(trigger_card)))
@@ -389,6 +396,7 @@ const AttackPhase = function(gs, ui, controller) {
 			    }
 			    oncancel={
 				evt => {
+				    ui.closeCurrentPrompt()
 				    func(gs)
 				}
 			    }/>,
@@ -502,6 +510,7 @@ const AttackPhase = function(gs, ui, controller) {
 
 	    const applyEncoreActions = (gs, player, pos) => {
 		let stock = G.stock(gs, player)
+		
 		return card => {
 		    let actions = [
 			{
@@ -521,7 +530,7 @@ const AttackPhase = function(gs, ui, controller) {
 			}
 			
 		    ]
-		    if(stock.size > 3) {
+		    if(stock.size >= 3) {
 			actions.push({
 			    exec() {
 			    },
@@ -556,26 +565,44 @@ const AttackPhase = function(gs, ui, controller) {
 		    let cards = G.stage(gs, player).getIn(pos);
 		    let card = cards.first()
 	 	    if(iscard(card) && Status.reversed(card)) {
-			return gs.updateIn([player, 'stage'], stage => {
+			gs = gs.updateIn([player, 'stage'], stage => {
 			    return stage.updateIn(pos, p => {
-				return p.update(0, applyEncoreActions(gs, player, pos))
+				return p.update(0, c => {
+				    card = applyEncoreActions(gs, player, pos)(c)
+				    return card
+				})
 			    })
 			})
 			
+		    
+
+ 			let has_no_action, has_no_encores;
+			if( (has_no_action = (card.getIn(['actions']) === undefined ||
+					      // only action is retire
+					      (card.getIn(['actions']).size === 1 && card.getIn(['actions']).first().getIn(['desc']) === "Retire") )) &&
+			    (has_no_encores = (card.getIn(['cardactions']) === undefined || card.getIn(['cardactions']).size === 0 ))) {
+
+			    console.log(`auto retiring ${card.getIn(['info','id'])}`)
+			    let stage_card = gs.getIn([player, 'stage'].concat(pos))
+			    gs = gs.updateIn([player, 'stage'].concat(pos), cards => List()).updateIn([player, 'waiting_room'], wr => stage_card.concat(wr))
+			}
+			else {
+			    console.log(` has no actions ${has_no_action} and has no encores ${has_no_encores} for card at ${pos}`)
+			}
 		    }
 		    return gs
 
 		}
 	    }
 	    
-	    const updateUI = (evt) => {
-		return gs => {
-		    return create(obs => {
-			return ui.updateUI(gs, obs, evt)
-		    })
-		}
+	    // const updateUI = (evt) => {
+	    // 	return gs => {
+	    // 	    return create(obs => {
+	    // 		return ui.updateUI(gs, obs, evt)
+	    // 	    })
+	    // 	}
 		
-	    }
+	    // }
 
 	    const checkisreversed = (gs, player, pos) => {
 		let card = gs.getIn([player, 'stage'].concat(pos))
@@ -610,7 +637,7 @@ const AttackPhase = function(gs, ui, controller) {
 	    	.map(applyifreversed(['center','right'], inactiveplayer(gs)))
 	    	.map(applyifreversed(['back', 'left'], inactiveplayer(gs)))
 	    	.map(applyifreversed(['back','right'], inactiveplayer(gs)))
-		.mergeMap(updateUI({evt:'encore'}))
+		.mergeMap(this.updateUI({evt:'encore'}))
 		.mergeMap(hasreversed)
 	    
 	    

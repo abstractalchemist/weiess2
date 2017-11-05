@@ -438,17 +438,21 @@ const applyActions = (gs, evt, ui, next) => {
 // update ui with the given event
 // evt - the event that occurred
 // func - a function to be executed by any activated action; or force the stream to continue
-const updateUIFactory = function(ui) {
+const updateUIFactory = function(ui, and) {
     //    console.log(`*********************** ui ${ui} ****************************`)
     return function(evt, ignoreprompt, func) {
 	//	console.log(`*********************** ui ${ui}, evt ${evt} ****************************`)
+
 	return function(gs)  {
+	    console.log(`running event ${evt.evt}`)
 	    //	    console.log(`gs? ${gs}`)
 	    let f = func || (o => (gs => {
 		//		console.log(`gs? ${gs}`)
 		o.next(gs)
 		o.complete()
 	    }))
+	    if(and)
+		and(gs)
 	    //	    console.log(`gs? ${gs}`)
 	    return create(obs => {
 		ui.updateUI(applyActions(gs,evt, ui, f(obs)), obs, evt, ignoreprompt)

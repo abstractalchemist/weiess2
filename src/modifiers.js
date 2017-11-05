@@ -80,20 +80,18 @@ function findbase(card, gs, type) {
 	pos.forEach(i => {
 	    let checked_id
 	    if(id === (checked_id = getId(gs, 'player1', i))) {
-		console.log(`${checked_id} matches ${card}`)
 		card = gs.getIn(['player1', 'stage'].concat(i)).first()
 	    }
-	    else
-		console.log(`${checked_id} does not match ${card}`)
+	    // else
+	    // 	console.log(`${checked_id} does not match ${card}`)
 	})
 	pos.forEach(i => {
 	    let checked_id
-	    if(id === (checked_id = getId(gs, 'player2', i))) 
-	    {		console.log(`${checked_id} matches ${card}`)
-			card = gs.getIn(['player2', 'stage'].concat(i)).first()
+	    if(id === (checked_id = getId(gs, 'player2', i))) {
+		card = gs.getIn(['player2', 'stage'].concat(i)).first()
 	    }
-	    else
-		console.log(`${checked_id} does not match ${card}`)
+	    // else
+	    // 	console.log(`${checked_id} does not match ${card}`)
 	    
 	})
 	

@@ -303,7 +303,7 @@ function CardSlot({id, children}) {
 function fieldReverse({game_state,obs}, controller) {
     let player;
     let gs = game_state.getIn([player = inactiveplayer(game_state)]).toJS();
-    console.log(`rendering ${player} on turn ${game_state.getIn(['turn'])}`)
+//    console.log(`rendering ${player} on turn ${game_state.getIn(['turn'])}`)
     //    console.log(gs)
     let center= [ <SpacerSlot key='spacer-1' id='spacer-1' width={2} />,  // spacer
 		  <SpacerSlot key='spacer-2' id='spacer-2' width={2} />,  // spacer		  
