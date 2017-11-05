@@ -155,7 +155,35 @@ describe('deck_utils test', function() {
     })
 
 
-    it('searchwaitingroom',  function() {
-	let [gs,controller] = init('main', 0)
+    it('searchwaitingroom',  function(done) {
+	let ui;
+	let [gs,controller] = init('main', 0, ui = {
+	    prompt(func) {
+		return create(obs => {
+		    let { prompt, id } = func(gs => {
+			console.log(`funced`)
+			obs.next(gs)
+			obs.complete()
+		    })
+		    console.log("****************************** searching")
+		    const obj = mount(prompt)
+		    obj.find('#select-card').simulate('click')
+		    obj.find('#deckselector-ok').simulate('click')
+
+		})
+	    }
+		    
+	})
+	gs = gs.updateIn(['player1', 'waiting_room'], wr => wr.push(basecard(1000)))
+	ui.prompt(searchwaitingroom(1, 'hand', _ => true, gs, 'player1'))
+	    .subscribe(
+		g => {
+		    gs = g
+		},
+		err => done(err),
+		_ => {
+		    expect(gs.getIn(['player1','hand']).size).to.equal(1)
+		    done()
+		})
     })
 })

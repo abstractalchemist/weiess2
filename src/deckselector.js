@@ -4,7 +4,7 @@ import React from 'react'
 class CardDisplay extends React.Component {
     constructor(props) {
 	super(props)
-	this.state = { i : 0 }
+	this.state = { i : 0, selected:0 }
     }
 
     render() {
@@ -15,7 +15,13 @@ class CardDisplay extends React.Component {
 		return {}
 	    })()
 	}><div style={{alignSelf:"flex-end"}}>
-		<button className="mdl-button mdl-js-button mdl-button--icon">
+		<button id='select-card' className="mdl-button mdl-js-button mdl-button--icon" onClick={
+		    evt => {
+			console.log(`found ${this.props.cards[this.state.i]} from ${this.state.i}`)
+			this.props.clickhandler(this.props.cards[this.state.i].info.id)
+			this.setState({selected:this.state.selected + 1})
+		    }
+		} enabled={"" + (this.state.selected <= this.props.selectupto)}>
 		<i className="material-icons">plus</i>
 		</button>
 		<input className="mdl-slider mdl-js-slider" type="range" value={this.state.i} onChange={
@@ -40,18 +46,24 @@ function DeckSelector({game_state, field, player, onselect, selectcount, filter}
     if(!Array.isArray(field))
 	field = [field]
     filter = filter || (_ => true)
+    let ids = []
     return (<dialog className="mdl-dialog" id="deck-selector">
-	    <CardDisplay cards={game_state.getIn([player].concat(field)).filter(filter).toJS()} />
+	    <CardDisplay cards={game_state.getIn([player].concat(field)).filter(filter).toJS()} clickhandler={
+		id => {
+		    console.log(`selected ${id}`)
+		    ids.push(id)
+		}
+	    } selectupto={selectcount}/>
 	    <div className="mdl-dialog__actions">
-	    <button id='deckselector-ok' className="mdl-button mdl-js-button" onClick={
+	    <button id='deckselector-ok' className="mdl-button mdl-js-button" enabled={"" + (ids.length <= selectcount)} onClick={
 		evt => {
-		    let ids = [];  // TODO: decide how show the ids to be selected
 		    if(document.querySelector('#deck-selector'))
-			document.querySelector('#deck-selector').close()
+ 			document.querySelector('#deck-selector').close()
 		    onselect(ids)
 		}
+		
 	    }>
-	    Ok
+	    Cancel
 	    </button>
 	    </div>
 	    </dialog>)

@@ -232,7 +232,7 @@ class CardDisplay extends React.Component {
 			this.setState({i:evt.currentTarget.value})
 		    }
 		}
-		min="0" max={this.props.cards.length - 1} tabindex="0"></input>
+		min="0" max={this.props.cards.length - 1} tabIndex="0"></input>
 		</div>
 		</div>)
 	

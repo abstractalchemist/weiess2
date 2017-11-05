@@ -120,21 +120,25 @@ function searchwaitingroom(count, destfield, filter, gs, player) {
     const findids = func => {
 	
 	return ids => {
+
 	    if(ids.length <= count) {
-		ids.forEach(id => {
+		fromJS(ids).forEach(id => {
+		    
 		    let deck = G.waiting_room(gs);
 		    let index = deck.findIndex(i => i.getIn(['info','id']) === id)
-		    if(index > 0) {
+		    console.log(`found ${index} for ${id}`)
+		    if(index >= 0) {
 			let card = deck.get(index);
+			if(!Array.isArray(destfield))
+			    destfield = [destfield]
 			gs = gs
 			    .updateIn([currentplayer(gs), 'waiting_room'], wr => {
 				return wr.delete(index)
 			    })
- 			    .updateIn([currentplayer(gs)], field => {
-				return field.getIn(destfield, loc => loc.push(card))
-			    })
+ 			    .updateIn([currentplayer(gs)].concat(destfield), loc => loc.push(card))
 		    }
 		})
+		console.log(`********************** funcing`)
 		func(gs)
 	    }  
 	}
