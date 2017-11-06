@@ -416,6 +416,22 @@ const AttackPhase = function(gs, ui, controller) {
 		    
 		}
 		    break;
+		case Triggers.bounce: {
+		    prompt = ui.prompt(func => {
+			return {
+			    prompt: <StageSelector selectcount={1} onselect={
+				([stage, pos]) => {
+
+				    // move the selected character to opponents waiting room
+				}
+			    } openpositions={( _ => {
+				// return all opponent positions that have a character
+			    })()}/>,
+			    id:'stage-select'
+			}
+		    })
+		}
+		    break;
 		default:
 		    gs = stock_trigger(gs)
 		    break;

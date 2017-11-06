@@ -9,7 +9,8 @@ const Triggers = {
     draw : "draw",
     shot : "shot",
     soul : "soul",
-    soulgate : "soul gate"
+    soulgate : "soul gate",
+    bounce : "bounce"
 }
 
 const Status = {
