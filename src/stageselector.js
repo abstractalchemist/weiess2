@@ -8,18 +8,27 @@ openpositions is the stage positions to select
 function StageSelector({onselect, openpositions, selectioncount}) {
 
     let click = evt => {
+
 	//	onselect(openpositions[0])
-	let d = document.querySelector('#stage-select table tr.is-selected')
+	let d = document.querySelectorAll('#stage-select table tr.is-selected')
+	
 	let dialog = document.querySelector('#stage-select');
 	if(dialog)
 	    dialog.close()
-	if(d) {
-	    let stage = d.dataset.stage
-	    let pos = d.dataset.pos
-	    onselect([stage,pos])
+	if(d.length === selectioncount) {
+
+	    let positions = []
+	    for(let item of d) {
+		let stage = item.dataset.stage
+		let pos = item.dataset.pos
+		positions.push([stage,pos])
+	    }
+	    console.log(`************************************ processing stage select ${positions} ********************************************`)
+	    onselect(positions)
 	}
-	else 
-	    onselect(openpositions[0])
+	else if(selectioncount === 1) {
+	    onselect([openpositions[0]])
+	}
 
     }
 

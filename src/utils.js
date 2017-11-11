@@ -530,7 +530,7 @@ const processAbility = (i, abilities, ui, evt, gs) => {
 	
 	// this is gs => Observable function
 	// a is a function which returns a (func => { prompt, id }) function
-	return ui.prompt(a(evt, gs))
+	return ui.prompt(a(evt, gs, ui))
 	    .mergeMap(gs => {
 		return processAbility(i + 1, abilities, ui, evt, gs)
 	    })

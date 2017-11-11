@@ -1,6 +1,13 @@
 import React from 'react'
 
 
+/*
+ Display all cards from a list
+- properties
+  - cards - list of cards to select from
+  - selectupto -  number of cards before this component is disabled
+  - clickhandler - called each time with a card id identifying the card chosen
+*/
 class CardDisplay extends React.Component {
     constructor(props) {
 	super(props)
@@ -69,7 +76,4 @@ function DeckSelector({game_state, field, player, onselect, selectcount, filter}
 	    </dialog>)
 }
 
-export default DeckSelector;
-
-
-
+export { DeckSelector as default, CardDisplay }

@@ -210,6 +210,7 @@ const AttackPhase = function(gs, ui, controller) {
 		.mergeMap(this.declare.bind(this))
 		.mergeMap(this.updateUI({evt:"attack_select"}, true))
 		.map(clearactions)
+		.mergeMap(applyAutomaticAbilities({evt:"attack_select",selected_pos:_pos}, ui, gs))
 		.mergeMap(gs => {
 //		    let attacking_card = _attacking_card
 		    if(_pos) {
@@ -245,35 +246,6 @@ const AttackPhase = function(gs, ui, controller) {
 		.mergeMap(checkbattleconditions(this.resolve.bind(this), gs => {
 		    _gs = gs;
 		}))
- 		// .mergeMap(gs => {
-		    
-		//     // true if there is no card, or the card is actually resting
-		//     const is_stage_resting = stack => {
-		// 	let c;
-		// 	if(List.isList(stack) && stack.size > 0 && iscard(c = stack.first())) {
-		// 	    //			    return !(Status.not_attack(c) || Status.stand(c))
-
-		// 	    let rested = Status.rest(c)
-		// 	    let reversed = Status.reversed(c)
-		// 	    console.log(`rested ${rested} || reversed ${reversed}`)
-		// 	    return rested || reversed
-		// 	}
-		// 	return true
-		//     }
-		    
-		//     let stage_cl = gs.getIn([currentplayer(gs), 'stage', 'center','left'])
-		//     let stage_cm = gs.getIn([currentplayer(gs), 'stage', 'center','middle'])
-		//     let stage_cr = gs.getIn([currentplayer(gs), 'stage', 'center','right'])
-		//     _gs = gs
-		//     if(!(is_stage_resting(stage_cl) && is_stage_resting(stage_cm) && is_stage_resting(stage_cr))) {
-			
-		// 	return this.resolve()
-		//     }
-		//     else {
-			
-		// 	return of(_gs)
-		//     }
-		// })
 		.mergeMap(this.updateUI({evt:"attack_encore"}, true))
 		.mergeMap(gs => this.encore(gs))
 	    

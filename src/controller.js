@@ -450,7 +450,7 @@ const ControllerFactory = function(game_state) {
 					return {
 					    prompt:
 						<StageSelector onselect={
-						    ([deststage, destpos]) => {
+						    ([[deststage, destpos]]) => {
 							return playcard(gs, h, deststage, destpos)
 							    .map(clearactions)
 							    .do(_ => _ui.closeCurrentPrompt())
