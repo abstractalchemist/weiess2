@@ -14,6 +14,10 @@ class CardDisplay extends React.Component {
 	this.state = { i : 0, selected:0 }
     }
 
+    componentDidUpdate() {
+	componentHandler.upgradeDom();
+    }
+
     render() {
 	return (<div className='mdl-dialog__content' style={
 	    ( _ => {
@@ -21,7 +25,7 @@ class CardDisplay extends React.Component {
 		    return {background:`no-repeat center/80% url(${this.props.cards[this.state.i].info.image})`, display:"flex", minHeight:"290px"}
 		return {}
 	    })()
-	}><div style={{alignSelf:"flex-end"}}>
+	}><div style={{alignSelf:"flex-end",backgroundColor:"white"}}>
 		<button id='select-card' className="mdl-button mdl-js-button mdl-button--icon" onClick={
 		    evt => {
 			console.log(`found ${this.props.cards[this.state.i]} from ${this.state.i}`)
@@ -36,7 +40,7 @@ class CardDisplay extends React.Component {
 			this.setState({i:evt.currentTarget.value})
 		    }
 		}
-		min="0" max={this.props.cards.length - 1} tabindex="0"></input>
+		min="0" max={this.props.cards.length - 1} tabIndex="0"></input>
 		</div>
 		</div>)
 	

@@ -5,8 +5,10 @@ import { ClimaxEffects } from './climax'
 import StageSelector from '../stageselector'
 import React from 'react'
 import { iscard } from '../field_utils'
-import { DrawSelect } from './utils'
+import { DrawSelect,selectforpowerandsoul,isinfront, findoccupiedpositions, findAndRemoveCard } from './utils'
 import { findstageposition } from '../utils'
+import { currentplayer } from '../game_pos'
+
 
 export default {
     vs_w50_064: Object.assign({}, ClimaxEffects.power1000_soul1),
@@ -15,16 +17,18 @@ export default {
 	    if(gs.getIn(['phase']) === 'climax') {
 		return List([
 		    
-		    (evt, gs) => {
+		    (evt, gs, ui) => {
 			return func => {
 			    return  {
 				id: 'stage-select',
-				prompt: <StageSelector onselect={selectforpowerandsoul(gs, 2000, 1)}
-				openpositions={[['center','left'],
-						['center','middle'],
-						['center','right'],
-						['back','left'],
-						['back','right']]}
+				prompt: <StageSelector onselect={
+				    pos => {
+					gs = selectforpowerandsoul(gs, 2000, 1)(pos)
+					ui.closeCurrentPrompt()
+					func(gs)
+				    }
+				}
+				openpositions={findoccupiedpositions(gs)}
 				selectioncount={2}/>
 			    }
 			}
@@ -35,22 +39,32 @@ export default {
 	}
     }),
     vs_w50_045: Object.assign({}, {
-	auto_abilities(evt, gs, ui) {
+
+	// id is the id of the card that the ability is bein invoked on
+	auto_abilities(evt, gs, id) {
 	    if(evt.evt === 'attack_select') {
 		
-		let pos = evt.pos;
-		let stagepos = findstageposition(gs, 'VS/W50-045')
-		if(pos[0] === stagepos[0] && pos[1] === stagepos[1]) {
-		    return fromJS([
-			(evt, gs) => {
+		let pos = evt.selected_pos;
+		//let stagepos = findstageposition(gs, 'VS/W50-045')
+		let attacker = gs.getIn([currentplayer(gs), 'stage'].concat(pos)).first()
+		if(attacker.getIn(['info','id']) === id) {
+		    return List([
+			(evt, gs, ui) => {
 			    return func => {
 				return {
-				    id: 'action-dialog',
+				    id: 'draw-select',
 				    prompt: ( <DrawSelect draw_count={2} onend={
 					gs => {
+					    ui.closeCurrentPrompt()
 					    func(gs)
 					}
-				    } game_state={gs}/>  )
+				    } game_state={gs}
+					      cancelhandler={
+						  evt => {
+						      ui.closeCurrentPrompt()
+						      func(gs)
+						  }
+					      }/>  )
 				}
 			    }
 			}
@@ -68,18 +82,20 @@ export default {
     }),
     vs_w50_042: Object.assign({}, {
 	continous: {
-	    power(card, gs) {
+	    power(card, gs, id) {
+		let otherpos = findstageposition(gs, id)
+
 		if(iscard(card)) {
 		    let pos = findstageposition(gs, card.getIn(['info', 'id']))
-		    if(pos[0] !== 'center') {
-			return 0
+		    if(pos && otherpos && isinfront(pos, otherpos)) {
+			let level = card.getIn(['active','level'])
+			if(typeof level === 'function')
+			    level = level(gs)
+			return level * 500;
 		    }
-		    // can only be called if this card is on the field anyway
-		    let otherpos = findstageposition(gs, card.getIn(['info','id']))
-		    
-			
-			
 		}
+		return 0;
+		
 	    }
 	},
 	auto_abilities(ev, gs, ui) {

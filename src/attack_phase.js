@@ -210,7 +210,11 @@ const AttackPhase = function(gs, ui, controller) {
 		.mergeMap(this.declare.bind(this))
 		.mergeMap(this.updateUI({evt:"attack_select"}, true))
 		.map(clearactions)
-		.mergeMap(applyAutomaticAbilities({evt:"attack_select",selected_pos:_pos}, ui, gs))
+		.mergeMap(gs => {
+		    if(_pos)
+			return applyAutomaticAbilities({evt:"attack_select",selected_pos:_pos}, ui, gs)
+		    return of(gs)
+		})
 		.mergeMap(gs => {
 //		    let attacking_card = _attacking_card
 		    if(_pos) {

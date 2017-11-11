@@ -48,8 +48,9 @@ function Card({ui,gs,obs,card,rotate}) {
 	    <div className="mdl-card__actions">
 	    {( _ => {
 		if(card.actions) {
+		    let action = 0;
 		    return card.actions.map(action => {
-			return (<button className="mdl-button mdl-js-button"
+			return (<button key={`action-${action++}`} className="mdl-button mdl-js-button"
 				onClick={
 				    _ => {
 					action.exec().subscribe(
@@ -65,8 +66,9 @@ function Card({ui,gs,obs,card,rotate}) {
 	    })()}
 	    {(_ => {
 		if(card.cardactions) {
+		    let action = 0;
 		    return card.cardactions.map(action => {
-			return (<button className="mdl-button mdl-js-button"
+			return (<button key={`cardaction-${action++}`} className="mdl-button mdl-js-button"
 				onClick={
 				    evt => {
 					action.exec(gs,ui).subscribe(
@@ -115,8 +117,9 @@ function StageCard({ui,obs,gs,cards}) {
 	    <div className="mdl-card__actions">
 	    {( _ => {
 		if(card.actions) {
-		    return card.actions.map(action => {
-			return (<button className="mdl-button mdl-js-button"
+		    
+		    return card.actions.map((action,index) => {
+			return (<button key={`action-${index}`} className="mdl-button mdl-js-button"
 				onClick={
 				    _ => {
 					action.exec().subscribe(
@@ -132,9 +135,10 @@ function StageCard({ui,obs,gs,cards}) {
 	    })()}
 
 	    {( _ => {
+		
 		if(card.cardactions && card.cardactions.length) {
-		    return card.cardactions.map(({exec, desc, shortdesc}) => {
-			return (<button className="mdl-button mdl-js-button"
+		    return card.cardactions.map(({exec, desc, shortdesc}, index) => {
+			return (<button key={`cardaction-${index}`} className="mdl-button mdl-js-button"
 				onClick={
 				    evt => {
 					exec(gs, ui).subscribe(

@@ -6,6 +6,8 @@ import VS from './mappings/vivid_strike'
 
 export default (function() {
 
+    let _unique_id_ = 0;
+    
     const internalmapper = card => {
 	let level = parseInt(card.level)
 	let power = parseInt(card.power)
@@ -17,7 +19,7 @@ export default (function() {
 	}
 	return Object.assign({},
 			     {
-				 info:Object.assign({},card,{ title:card.name,level, power, soul, cost }),
+				 info:Object.assign({},card,{ title:card.name,level, power, soul, cost }, {id:card.id + "-" + _unique_id_}),
 				 status:Status.stand(), 
 				 active:{
 				     power:0,

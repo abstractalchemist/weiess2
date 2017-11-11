@@ -4,6 +4,15 @@ import { findcardonstage, findstageposition, isclimax } from '../utils'
 import { drawfromdeck } from '../deck_utils'
 import { CardDisplay } from '../deckselector'
 import { currentplayer } from '../game_pos'
+import { iscard } from '../field_utils'
+
+function isinfront([p0,p1], [o0,o1]) {
+    if(p0 === 'center' && o0 === 'back') {
+	return p1 === o1 || p1 === 'center'
+    }
+    return false;
+}
+
 
 // applies attribute increase for only the current turn
 function attributecurrentturn(turn, applied_value) {
@@ -75,48 +84,48 @@ class DrawSelect extends React.Component {
 	    let deck = this.state.game_state.getIn([currentplayer(this.state.game_state), 'deck'])
 	    let maxCount = this.props.draw_count;
 	    let cards = []
-	    let found = 0;
+	    let found = false;
 	    for(let i = 0; i < maxCount; ++i) {
 		let card = deck.first()
-		found = isclimax(card) ? found + 1 : found;
+		found = isclimax(card) || found;
 		deck = deck.shift()
 		
 	    }
 			   
 	    let gs = drawfromdeck(this.props.draw_count, 'waiting_room', this.state.game_state)
-	    this.setState({ current_action: "Pay", game_state: gs, found, enable_ok: found > 0, actionDesc:"Pay cost to select a character card from the waiting room", selected:[] })
+	    if(found)
+		this.setState({ current_action: "Pay", game_state: gs, found, enable_ok:found, actionDesc:"Pay cost to select a character card from the waiting room", selected:[] })
+	    else
+		this.setState({ current_action: "End" })
 	}
 	    break;
 	case "Pay": {
 
-	    this.setState({actionDesc:<CardDisplay selectupto={1} cards={this.state.game_state.getIn([currentplayer(this.state.game_state), 'hand']).toJs()}
-			   clickhandler={
-			       id => {
-				   let [card, gs] = findAndRemoveCard(id, 'hand', this.state.game_state)
-				   
-				   this.setState({game_state:gs
-						  .updateIn([currentplayer(gs), 'waiting_room'], wr => wr.unshift(card)),
-						  current_action:"Select",
-						  found:this.state.game_state.found - 1})				   
-			       }}/>})
+	    this.setState({actionDesc:[<p key="desc">Select A Card From Hand</p>,
+				       <CardDisplay key="hand-display" selectupto={1} cards={this.state.game_state.getIn([currentplayer(this.state.game_state), 'hand']).toJS()}
+				       clickhandler={
+					   id => {
+					       let [card, gs] = findAndRemoveCard(id, 'hand', this.state.game_state)
+					       
+					       this.setState({ current_action:"Select",
+							       enable_ok:true,
+							       game_state:gs
+							       .updateIn([currentplayer(gs), 'waiting_room'], wr => wr.unshift(card))})				   
+					   }}/>], current_action:"Pay", enable_ok:false})
 	}
 	    break;
 	case "Select": {
-	    this.setState({actionDesc:<CardDisplay selectupto={1} cards={this.state.game_state.getIn([currentplayer(this.state.game_state), 'waiting_room']).toJs()}
-			   clickhandler={
-			       id => {
-				   let [card, gs] = findAndRemove(id, 'waiting_room', this.state.game_state)
-				   this.setState({game_state:gs
-						  .updateIn([currentplayer(gs), 'hand'], hand => hand.push(card)),
-						  current_action:( _ => {
-						      if(this.state.game_state.found > 0) {
-							  return "Pay"
-						      }
-						      return "End"
-						  })()
-						 })
-			       }
-			   } />})
+	    this.setState({actionDesc:[<p key="desc">Select Card from Waiting Room</p>,
+				       <CardDisplay key="waiting-room-display" selectupto={1} cards={this.state.game_state.getIn([currentplayer(this.state.game_state), 'waiting_room']).toJS()}
+				       clickhandler={
+					   id => {
+					       let [card, gs] = findAndRemoveCard(id, 'waiting_room', this.state.game_state)
+					       this.setState({game_state:gs
+							      .updateIn([currentplayer(gs), 'hand'], hand => hand.push(card)),
+							      current_action:"End"
+							     })
+					   }
+				       } />]})
 	}
 	    break;
 	case "End": {
@@ -134,7 +143,7 @@ class DrawSelect extends React.Component {
 		{this.state.actionDesc}
 		</div>
 		<div className="mdl-dialog_actions">
-		<button id='action' className="mdl-button mdl-js-button" onClick={this.clickhandler.bind(this)} enabled={this.state.enable_ok}>
+		<button id='action' className="mdl-button mdl-js-button" onClick={this.clickhandler.bind(this)} enabled={`${this.state.enable_ok}`}>
 		{this.state.current_action}
 		</button>
 		<button id='cancel' className="mdl-button mdl-js-button" 
@@ -151,4 +160,25 @@ class DrawSelect extends React.Component {
     
 }
 
-export { attributecurrentturn, selectforpowerandsoul, findAndRemoveCard, DrawSelect }
+function findoccupiedpositions(gs, player) {
+    player = player || currentplayer(gs)
+    let positions = []
+    if(iscard(gs.getIn([currentplayer(gs), 'stage', 'center', 'left']).first())) {
+	positions.push(['center','left'])
+    }
+    if(iscard(gs.getIn([currentplayer(gs), 'stage', 'center', 'middle']).first())) {
+	positions.push(['center','middle'])
+    }
+    if(iscard(gs.getIn([currentplayer(gs), 'stage', 'center', 'right']).first())) {
+	positions.push(['center','right'])
+    }
+    if(iscard(gs.getIn([currentplayer(gs), 'stage', 'back', 'left']).first())) {
+	positions.push(['back','left'])
+    }
+    if(iscard(gs.getIn([currentplayer(gs), 'stage', 'back', 'right']).first())) {
+	positions.push(['back','left'])
+    }
+    return positions;
+}
+
+export { attributecurrentturn, selectforpowerandsoul, findAndRemoveCard, DrawSelect, isinfront, findoccupiedpositions }

@@ -532,10 +532,13 @@ const ControllerFactory = function(game_state) {
 					let card = hand.get(index)
 					if(index >= 0 && isclimax(card)) {
 					    return of(gs.updateIn([currentplayer(gs), 'hand'], hand => hand.delete(index)).updateIn([currentplayer(gs), 'climax'], _ => List().push(card)))
+						.mergeMap(gs => {
+						    return applyAutomaticAbilities({ evt: "play", id:card.getIn(['info','id']) }, _ui, gs)
+						})
 					}
 
 					// climax effects handled here if it requires user input, otherwise it's a passive
-					return applyAutomaticAbilities({ evt: "play", id:card.getIn(['info','id']) }, ui, gs)
+					return of(gs)
 				    },
 				    desc: "Play climax card"
 				    

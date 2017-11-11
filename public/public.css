@@ -29,7 +29,7 @@
 }
 
 .level .mdl-card__title {
-    transform:rotate(90deg);
+    transform:rotate(270deg);
     transform-origin:center;
 }
 

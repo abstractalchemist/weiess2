@@ -530,6 +530,7 @@ const processAbility = (i, abilities, ui, evt, gs) => {
 	
 	// this is gs => Observable function
 	// a is a function which returns a (func => { prompt, id }) function
+	
 	return ui.prompt(a(evt, gs, ui))
 	    .mergeMap(gs => {
 		return processAbility(i + 1, abilities, ui, evt, gs)
@@ -543,12 +544,14 @@ const applyAutomaticAbilities = (evt, ui, gs) => {
     let activeabilities = activecards.map(c => {
 	let func;
 	if(iscard(c) && (func = c.getIn(['auto_abilities']))) {
-	    return func(evt, gs)
+	    return func(evt, gs, c.getIn(['info','id']))
 	}
 	return List()
     })
 	.reduce( (R,T) => {
-	    return R.concat(T)
+	    if(T)
+		return R.concat(T)
+	    return R
 	}, List())
     if(activeabilities.size > 0) {
 	return processAbility(0, activeabilities, ui, evt, gs)
