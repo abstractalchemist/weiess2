@@ -33,7 +33,7 @@ class CardDisplay extends React.Component {
 			this.setState({selected:this.state.selected + 1})
 		    }
 		} enabled={"" + (this.state.selected <= this.props.selectupto)}>
-		<i className="material-icons">plus</i>
+		<i className="material-icons">add</i>
 		</button>
 		<input className="mdl-slider mdl-js-slider" type="range" value={this.state.i} onChange={
 		    evt => {

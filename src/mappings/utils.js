@@ -75,7 +75,11 @@ class DrawSelect extends React.Component {
 	this.state = { current_action : "Draw", cards_drawn : 0, game_state: props.game_state, enable_ok: true, actionDesc:"Draw " + props.draw_count }
     }
 
-
+    componentDidUpdate() {
+	componentHandler.upgradeDom();
+    }
+    
+    
     clickhandler() {
 	console.log(`current action is ${this.state.current_action}`)
 	switch(this.state.current_action) {
@@ -136,6 +140,9 @@ class DrawSelect extends React.Component {
 	}
     }
     render() {
+	let enabled = { enabled: "true" }
+	if(!this.state.enable_ok) 
+	    enabled = { disabled: "true" }
 	return (<dialog id="draw-select">
 		<div className="mdl-dialog_content">
 		
@@ -143,7 +150,7 @@ class DrawSelect extends React.Component {
 		{this.state.actionDesc}
 		</div>
 		<div className="mdl-dialog_actions">
-		<button id='action' className="mdl-button mdl-js-button" onClick={this.clickhandler.bind(this)} enabled={`${this.state.enable_ok}`}>
+		<button id='action' className="mdl-button mdl-js-button" onClick={this.clickhandler.bind(this)} {...enabled}>
 		{this.state.current_action}
 		</button>
 		<button id='cancel' className="mdl-button mdl-js-button" 
