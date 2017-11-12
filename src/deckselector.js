@@ -11,7 +11,7 @@ import React from 'react'
 class CardDisplay extends React.Component {
     constructor(props) {
 	super(props)
-	this.state = { i : 0, selected:0 }
+	this.state = { i : 0, selected:0, cards: props.cards }
     }
 
     componentDidUpdate() {
@@ -19,13 +19,14 @@ class CardDisplay extends React.Component {
     }
 
     render() {
-	let allow_additions = {enabled:true}
+	
+	let allow_additions = {enabled:"true"}
 	if(this.state.selected == this.props.selectupto) {
-	    allow_additions = {disabled:true}
+	    allow_additions = {disabled:"true"}
 	}
 	return (<div className='mdl-dialog__content' style={
 	    ( _ => {
-		if(this.props.cards && this.props.cards.length > 0)
+		if(this.state.cards && this.state.cards.length > 0)
 		    return {background:`no-repeat center/80% url(${this.props.cards[this.state.i].info.image})`, display:"flex", minHeight:"290px"}
 		return {}
 	    })()
@@ -34,8 +35,17 @@ class CardDisplay extends React.Component {
 		<button id='select-card' className="mdl-button mdl-js-button mdl-button--icon" onClick={
 		    evt => {
 			console.log(`found ${this.props.cards[this.state.i]} from ${this.state.i}`)
-			this.props.clickhandler(this.props.cards[this.state.i].info.id)
-			this.setState({selected:this.state.selected + 1})
+			let selected;
+			this.props.clickhandler(selected = this.state.cards[this.state.i].info.id)
+			this.setState({selected:this.state.selected + 1, cards: this.state.cards.filter(c => {
+			    return c.info.id !== selected
+			})})
+
+			
+			if(this.state.selected + 1 === this.props.selectupto) {
+			    if(this.props.selectionfinished())
+				this.props.selectionfinished()
+			}
 		    }
 		} {...allow_additions} >
 		<i className="material-icons">add</i>
@@ -69,7 +79,15 @@ function DeckSelector({game_state, field, player, onselect, selectcount, filter}
 		    console.log(`selected ${id}`)
 		    ids.push(id)
 		}
-	    } selectupto={selectcount}/>
+	    } selectupto={selectcount}
+	    selectionfinished={
+		evt => {
+		    
+		    if(document.querySelector('#deck-selector'))
+ 			document.querySelector('#deck-selector').close()
+		    onselect(ids)
+		}
+	    }/>
 	    <div className="mdl-dialog__actions">
 	    <button id='deckselector-ok' className="mdl-button mdl-js-button" enabled={"" + (ids.length <= selectcount)} onClick={
 		evt => {

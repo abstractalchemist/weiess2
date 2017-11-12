@@ -42,7 +42,7 @@ function selectforpowerandsoul(gs, power, soul) {
 	    gs = gs.updateIn([currentplayer(gs), 'stage'].concat(pos),
 			     stage => stage.update(0,
 				 		   card => {
-						       console.log(card)
+//						       console.log(card)
 						       return card
 							   .updateIn(['active', 'power'], attributecurrentturn(turn, power))
 							   .updateIn(['active', 'soul'], attributecurrentturn(turn, soul))
@@ -86,7 +86,7 @@ class DrawSelect extends React.Component {
     }
     
     clickhandler() {
-	console.log(`current action is ${this.state.current_action}`)
+//	console.log(`current action is ${this.state.current_action}`)
 	switch(this.state.current_action) {
 	    
 	case "Draw": {
@@ -218,7 +218,7 @@ class Bond extends React.Component {
 
     
     clickhandler() {
-	console.log(`*********************************************** processing current action ${this.state.current_action}`)
+//	console.log(`*********************************************** processing current action ${this.state.current_action}`)
 	switch(this.state.current_action) {
 	    
 	case "Pay" : {
@@ -285,4 +285,14 @@ function convertId(id) {
     throw new Error("Must pass a valid id")
 }
 
-export { attributecurrentturn, selectforpowerandsoul, findAndRemoveCard, DrawSelect, isinfront, findoccupiedpositions, Bond, convertId }
+function isinclimax(id, gs) {
+    let c0 = gs.getIn(['player1','climax'])
+    if(List.isList(c0))
+	return c0.first().getIn(['info','id']) === id
+    c0 = gs.getIn(['player2','climax'])
+    if(List.isList(c0))
+	return c0.first().getIn(['info','id']) === id
+    return false
+}
+
+export { attributecurrentturn, selectforpowerandsoul, findAndRemoveCard, DrawSelect, isinfront, findoccupiedpositions, Bond, convertId, isinclimax }

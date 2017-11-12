@@ -170,11 +170,13 @@ describe('ControllerFactory', function() {
 //		    console.log('looking at available actions')
 		    let hand = gs.getIn([currentplayer(gs),'hand'])
 		    let action = C.firstaction(hand)
-		    if(action)
+		    if(action) {
+			console.log("******************************************** Running clock action ************************************")
 			action().subscribe(gs => {
 			    obs.next(gs)
 			    obs.complete()
 			})
+		    }
 		}
 		else {
 //		    console.log(` no available actions`)
@@ -201,7 +203,7 @@ describe('ControllerFactory', function() {
 		})
     })
 
-    it('main - play a card', function(done) {
+    xit('main - play a card', function(done) {
 	//	let passes = 0;
 	let [gs, controller] = init('main', 0, {
 	    updateUI(gs, obs, evt) {
@@ -209,7 +211,7 @@ describe('ControllerFactory', function() {
 		let hand = G.hand(gs)
 		let hasavail;
 		if(hasavail  = hasavailableactions(gs, 'hand')) {
-		    console.log('process actions')
+//		    console.log('process actions')
 		    let card = hand.first();
 		    
 		    let exec = undefined;
@@ -230,7 +232,7 @@ describe('ControllerFactory', function() {
 
 		// // the test empties the hand, so we quite
  		else if(obs) {
-		    console.log(`has actions: ${hasavail}`)
+//		    console.log(`has actions: ${hasavail}`)
 		    obs.next(gs.setIn(['endmainphase'], true))
 		    obs.complete()
 		}
@@ -253,7 +255,7 @@ describe('ControllerFactory', function() {
 								      .updateIn(['active','level'], _ => 0)
 								      .updateIn(['passiveactions'], _ => {
 							return (gs, evt) => {
-							    console.log(`************************************* running ${evt.evt}`)
+//							    console.log(`************************************* running ${evt.evt}`)
 							    if(evt.evt === 'main' && evt.id === 0) {
 								
 								let [card, pos] = findcardonstage(gs, evt.id)
@@ -274,8 +276,8 @@ describe('ControllerFactory', function() {
 									})
 								    })
 								}
-								else
-								    console.log(`passive actions not applied ont ${evt.evt}, ${evt.id}`)
+								else {}
+//								    console.log(`passive actions not applied ont ${evt.evt}, ${evt.id}`)
 							    
 								
 							    }

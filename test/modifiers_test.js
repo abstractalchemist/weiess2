@@ -15,7 +15,10 @@ describe('modifiers', function() {
     it('power_calc', function() {
 	let [gs, c] = init('main', 0)
 	let bs = basecard(1000)
+
 	gs = gs.updateIn([currentplayer(gs), 'stage','center','left'], stagepos => stagepos.push(bs))
+	let originalpower = bs.getIn(['active','power'])
+	console.log(`original power: ${originalpower}`)
 	let power = power_calc(bs, gs)
  	expect(power).to.equal(bs.getIn(['info','power']))
 

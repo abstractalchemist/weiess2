@@ -247,7 +247,7 @@ describe('utils test', function() {
 					   _ => {
 					       return (evt, gs) => {
 						   if(evt.evt === 'play' && evt.id == card.getIn(['info','id'])) {
-						       console.log("condition met, activating event")
+//						       console.log("condition met, activating event")
 						       return fromJS([
 							   (evt, gs) => {
 							       return func => {
@@ -257,7 +257,7 @@ describe('utils test', function() {
 									       <button id="ok" className="mdl-button mdl-js-button" onClick={
 										   
 										   evt => {
-										       console.log('invoking func')
+//										       console.log('invoking func')
 										       func(gs)
 										   }
 									       }>
@@ -279,7 +279,7 @@ describe('utils test', function() {
 					    _ => {
 						return (evt, gs) => {
 						    if(evt.evt === 'play') {
-							console.log(`condition met, activating event in response to ${evt.id}`)
+//							console.log(`condition met, activating event in response to ${evt.id}`)
 							return fromJS([
 							    (evt, gs) => {
 								return func => {
@@ -289,7 +289,7 @@ describe('utils test', function() {
 										<button id="ok" className="mdl-button mdl-js-button" onClick={
 										    
 										    evt => {
-											console.log('invoking func')
+//											console.log('invoking func')
 											func(gs)
 										    }
 										}>

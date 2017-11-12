@@ -47,8 +47,8 @@ function StageSelector({onselect, openpositions, selectioncount}) {
 	    <tbody>
 	    {( _ => {
 		if(openpositions) {
-		    return openpositions.map( ([s,p]) => {
-			return (<tr data-stage={s} data-pos={p}>
+		    return openpositions.map( ([s,p], i) => {
+			return (<tr key={`pos-${i}`} data-stage={s} data-pos={p}>
 				<td>{s}</td><td>{p}</td>
 				</tr>)
 		    })

@@ -8,7 +8,7 @@ import { iscard } from '../field_utils'
 import { DrawSelect,selectforpowerandsoul,isinfront, findoccupiedpositions, findAndRemoveCard, Bond, convertId } from './utils'
 import { findstageposition } from '../utils'
 import { currentplayer } from '../game_pos'
-import  brainstorm, { search } from '../actions/brainstorm'
+import  brainstorm, { search, searchwr } from '../actions/brainstorm'
 import { Status } from '../battle_const'
 
 export default {
@@ -185,7 +185,7 @@ export default {
 								      selectioncount={1}
 								      onselect={
 									  pos => {
-									      actived_on = gs.getIn(['turn'])
+									      activated_on = gs.getIn(['turn'])
 									      ui.closeCurrentPrompt()
 									      func(selectforpowerandsoul(gs, 500, 0)(pos))
 									  }
@@ -215,7 +215,7 @@ export default {
 							     .updateIn([currentplayer(gs), 'waiting_room'], wr => wr.push(card))
 							     .updateIn([currentplayer(gs), 'stage'].concat(pos), stage => stage.update(0, card => card.updateIn(['status'], _ => Status.rest())))
 							 
-						     }, search())(gs, ui)
+						     }, searchwr())(gs, ui)
 						 },
 						 desc:"Brainstorm",
 						 shortdesc:"Brainstorm"

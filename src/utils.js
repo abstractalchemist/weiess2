@@ -472,12 +472,18 @@ const applyActions = (gs, evt, ui, next) => {
 										     if(!gs) {
 											 throw new Error("Game State not passed through")
 										     }
-										     if(next)
-											 next(gs)
+										  
 										     return of(gs)
 										 })
 										 .mergeMap(gs => {
 										     return applyAutomaticAbilities({evt:'activated_ability', id:l.getIn(['info','id']), is_card_turn:is_card_owned_by_current_player(l, gs)}, ui, gs)
+										 })
+										 .do(gs => {
+										     if(next)
+											 next(gs)
+										     
+										     ui.updateUI(gs)
+										    
 										 })
 									 }
 									 
@@ -543,7 +549,7 @@ const updateUIFactory = function(ui, and) {
 	//	console.log(`*********************** ui ${ui}, evt ${evt} ****************************`)
 
 	const functor = function(gs)  {
-	    console.log(`running event ${evt.evt}`)
+//	    console.log(`running event ${evt.evt}`)
 	    //	    console.log(`gs? ${gs}`)
 	    let f = func || (o => (gs => {
 		//		console.log(`gs? ${gs}`)

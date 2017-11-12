@@ -2,7 +2,7 @@ import React from 'react'
 import DeckSelector from '../deckselector'
 import StageSelector from '../stageselector'
 import { Observable } from 'rxjs'
-import { drawfromdeck, searchdeck } from '../deck_utils'
+import { drawfromdeck, searchdeck, searchwaitingroom } from '../deck_utils'
 const { of, create } = Observable
 import { currentplayer, isclimax, iscard } from '../utils'
 import { Map } from 'immutable'
@@ -76,9 +76,17 @@ function updatepowers(by) {
 function search(filter = charfilter) {
     return (ui, cardcount, game_state) => {
 	if(!game_state) throw "search must be passed game_state"
-	return ui.prompt(searchdeck(cardcount, 'deck', filter, game_state))
+	return ui.prompt(searchdeck(cardcount, 'hand', filter, game_state))
     }
- }
+}
+
+function searchwr(filter = charfilter) {
+
+    return (ui, cardcount, game_state) => {
+	if(!game_state) throw "search must be passed game_state"
+	return ui.prompt(searchwaitingroom(cardcount, 'hand', filter, game_state))
+    }
+}
 
 
 // cost is a function which updates the state based on cost payment
@@ -100,4 +108,4 @@ function brainstorm(cost, action) {
     }
 }
 
-export { brainstorm as default, search };
+export { brainstorm as default, search, searchwr };

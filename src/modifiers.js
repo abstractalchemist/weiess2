@@ -13,7 +13,7 @@ const checkundefined = (l, field) => {
 }
 
 
-const implcollectplayercards = function(player, gs) {
+const implcollectplayercards = function(player, gs, includeoutofplay = true) {
     //    console.log(`looking at ${player} cards`)
     let activecards = List()
     const pushCard = (stage, pos) => {
@@ -28,23 +28,27 @@ const implcollectplayercards = function(player, gs) {
     pushCard('back','right')
     checkundefined(activecards, 'stage cards')
     let level, climax, clock, hand, deck, waiting_room, memory;
-    let cards = activecards.concat(level = G.level(gs, player))
-	.concat(climax = G.climax(gs, player))
+    activecards = activecards.concat(climax= G.climax(gs, player))
+    let cards = (level = G.level(gs, player))
+//	.concat(climax = G.climax(gs, player))
 	.concat(clock = G.clock(gs, player))
 	.concat(memory = G.memory(gs, player))
-	.concat(hand = G.hand(gs, player))
-	.concat(deck = G.deck(gs, player))
-	.concat(waiting_room = G.waiting_room(gs, player))
+//	.concat(deck = G.deck(gs, player))
+    //	.concat(waiting_room = G.waiting_room(gs, player))
+    if(includeoutofplay) {
+	cards = cards.concat(hand = G.hand(gs, player))
+	checkundefined(hand, 'hand')	
+    }
     
     checkundefined(level, 'level')
     checkundefined(climax, 'climax')
     checkundefined(clock, 'clock')
-    checkundefined(hand, 'hand')
-    checkundefined(waiting_room, 'waiting_room')
+
+//    checkundefined(waiting_room, 'waiting_room')
     checkundefined(memory, 'memory')
-    checkundefined(cards, 'allcards')
+//    checkundefined(cards, 'allcards')
     //    console.log(`size of cards ${cards.size}`)
-    return cards;
+    return [activecards, cards]
 }
 
 
@@ -53,8 +57,13 @@ const implcollectplayercards = function(player, gs) {
 
 const collectactivateablecards = function(gs) {
     validatefield(gs)
-    return implcollectplayercards(currentplayer(gs), gs).concat(implcollectplayercards(inactiveplayer(gs), gs))
+    //    return
+    let [current_active, current_inactive] = implcollectplayercards(currentplayer(gs), gs)
+    let [oppos_active, oppos_inactive] = implcollectplayercards(inactiveplayer(gs), gs)
+    return current_active.concat(current_inactive).concat(oppos_active).concat(oppos_inactive)
 }
+
+
 
 function getId(gs, player, pos) {
     let stage_pos = gs.getIn([player, 'stage'].concat(pos))
@@ -103,17 +112,29 @@ function findbase(card, gs, type) {
     let base = card.getIn(['active',type])
     if(typeof base === 'function')
 	base = base(gs)
-    //    console.log(`base before ${base}`)
-    base += collectactivateablecards(gs).map(c => {
-    	let func;
-    	if(func = c.getIn(['continous',type]))
-    	    return func(card, gs, c.getIn(['info','id']))
-    	return 0;
-    })
+//    console.log(`base before ${base}`)
+    let [currentplayercards, _1 ] = implcollectplayercards(currentplayer(gs), gs, false)
+    let [inactiveplayercards, _2 ] = implcollectplayercards(inactiveplayer(gs), gs, false)
+
+    let powermapper = iscurrentturn => {
+	return c => {
+    	    let func;
+    	    if(func = c.getIn(['continous',type]))
+    		return func(card, gs, c.getIn(['info','id']), iscurrentturn)
+    	    return 0;
+	}
+    }
+    base += currentplayercards.map(powermapper(true))
+	.reduce( (R,T) => {
+	    return R + T
+	}, 0) 
+
+    
+    base += inactiveplayercards.map(powermapper(false))
 	.reduce( (R,T) => {
 	    return R + T
 	}, 0)
-    //  console.log(`base after ${base}`)
+//    console.log(`base after ${base}`)
     return base
 
 }

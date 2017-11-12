@@ -558,7 +558,13 @@ const ControllerFactory = function(game_state) {
 	    }
 	    return of(GamePhases.climax.set(_gs))
 		.map(clearactions)
-		.mergeMap(updateUI(GamePhases.climax.start(), true))
+		.mergeMap(updateUI(GamePhases.climax.start(), true, o => {
+		    gs => {
+			_gs = gs
+			o.next(gs)
+			o.complete();
+		    }
+		}))
 		.map(selectclimax)
 		.mergeMap(updateUI({evt:"climax"}))
 		.mergeMap(gs => {
