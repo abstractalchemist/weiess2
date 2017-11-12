@@ -363,6 +363,75 @@ function reset(gs) {
     return gs;
 }
 
+const processAbility = (i, abilities, ui, evt, gs) => {
+    if(i < abilities.size) {
+	let a = abilities.get(i)
+	
+	// this is gs => Observable function
+	// a is a function which returns a (func => { prompt, id }) function
+	
+	return ui.prompt(a(evt, gs, ui))
+	    .mergeMap(gs => {
+		return processAbility(i + 1, abilities, ui, evt, gs)
+	    })
+    }
+    return of(gs)
+}
+
+
+// probably should check all places, but whatever
+function is_owned_by_player(card, gs, player) {
+    if(gs.getIn([player, 'stage', 'center','left']).find(c => c.getIn(['info','id']) === card))
+	return true
+    if(gs.getIn([player, 'stage', 'center','middle']).find(c => c.getIn(['info','id']) === card))
+	return true
+    if(gs.getIn([player, 'stage', 'center','back']).find(c => c.getIn(['info','id']) === card))
+	return true
+    if(gs.getIn([player, 'stage', 'back','left']).find(c => c.getIn(['info','id']) === card))
+	return true
+    if(gs.getIn([player, 'stage', 'back','right']).find(c => c.getIn(['info','id']) === card))
+	return true
+    if(gs.getIn([player, 'hand']).find(c => c.getIn(['info','id']) === card))
+	    return true
+    if(gs.getIn([player, 'waiting_room']).find(c => c.getIn(['info','id']) === card))
+	return true
+    if(gs.getIn([player, 'level']).find(c => c.getIn(['info','id']) === card))
+	return true
+    if(gs.getIn([player, 'clock']).find(c => c.getIn(['info','id']) === card))
+	return true
+    return false
+    
+}
+
+function is_card_owned_by_current_player(card, gs) {
+    if(iscard(card)) {
+	card = card.getIn(['info','id'])
+    }
+    return is_owned_by_player(card,gs, currentplayer(gs))
+}
+
+const applyAutomaticAbilities = (evt, ui, gs) => {
+    validatefield(gs)
+    let activecards = collectactivateablecards(gs)
+    let activeabilities = activecards.map(c => {
+	let func;
+	if(iscard(c) && (func = c.getIn(['auto_abilities']))) {
+	    return func(evt, gs, c.getIn(['info','id']))
+	}
+	return List()
+    })
+	.reduce( (R,T) => {
+	    if(T)
+		return R.concat(T)
+	    return R
+	}, List())
+    if(activeabilities.size > 0) {
+	return processAbility(0, activeabilities, ui, evt, gs)
+    }
+    return of(gs)
+}
+
+
 // apply all currently available continous actions and attaches active actions ( which require input from the user ) to activate
 // gs - gamestate
 // evt - the event that occurred
@@ -391,20 +460,31 @@ const applyActions = (gs, evt, ui, next) => {
 							 if(f = l.getIn(['availablecardactions'])) {
 							     //console.log(l)
 				 			     //console.log(`wrapping ${f}`)
-							     let cardactions = f(gs, evt)
-							     return cardactions.map( action => {
-
-								 return action.updateIn(['exec'], exec => {
-								     return _ => {
-									 return exec(gs,ui).mergeMap(gs => {
-									     if(next)
-										 next(gs)
-									     return of(gs)
-									 })
-								     }
+							     let id ;
+							     let cardactions = f(gs, evt, id = l.getIn(['info','id']))
+							     if(cardactions) {
+								 return cardactions.map( action => {
 								     
+								     return action.updateIn(['exec'], exec => {
+									 return _ => {
+									     return exec(gs,ui, id)
+										 .mergeMap(gs => {
+										     if(!gs) {
+											 throw new Error("Game State not passed through")
+										     }
+										     if(next)
+											 next(gs)
+										     return of(gs)
+										 })
+										 .mergeMap(gs => {
+										     return applyAutomaticAbilities({evt:'activated_ability', id:l.getIn(['info','id']), is_card_turn:is_card_owned_by_current_player(l, gs)}, ui, gs)
+										 })
+									 }
+									 
+								     })
 								 })
-							     })
+							     }
+							     return List()
 							 }
 						     })
 						 }
@@ -524,39 +604,5 @@ function cardviewer(ui) {
     }
 }
 
-const processAbility = (i, abilities, ui, evt, gs) => {
-    if(i < abilities.size) {
-	let a = abilities.get(i)
-	
-	// this is gs => Observable function
-	// a is a function which returns a (func => { prompt, id }) function
-	
-	return ui.prompt(a(evt, gs, ui))
-	    .mergeMap(gs => {
-		return processAbility(i + 1, abilities, ui, evt, gs)
-	    })
-    }
-    return of(gs)
-}
-
-const applyAutomaticAbilities = (evt, ui, gs) => {
-    let activecards = collectactivateablecards(gs)
-    let activeabilities = activecards.map(c => {
-	let func;
-	if(iscard(c) && (func = c.getIn(['auto_abilities']))) {
-	    return func(evt, gs, c.getIn(['info','id']))
-	}
-	return List()
-    })
-	.reduce( (R,T) => {
-	    if(T)
-		return R.concat(T)
-	    return R
-	}, List())
-    if(activeabilities.size > 0) {
-	return processAbility(0, activeabilities, ui, evt, gs)
-    }
-    return of(gs)
-}
 
 export { applyActions ,debug, findopenpositions, isevent, isclimax, canplay, payment, findcardonstage, findstageposition, dealdamage, clockDamage, hasavailableactions, clearactions, reset, updateUIFactory, cardviewer, applyAutomaticAbilities, processAbility }

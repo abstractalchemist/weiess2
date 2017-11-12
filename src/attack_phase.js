@@ -11,7 +11,7 @@ import { Map, fromJS, List } from 'immutable'
 import { Triggers, Status } from './battle_const'
 import { PoolFunction, DrawFunction, TreasureFunction } from './triggerfunctions'
 import React from 'react'
-import { power_calc, soul_calc, level_calc } from './modifiers'
+import { power_calc, soul_calc, level_calc, can_side_attack } from './modifiers'
 import { G, iscard } from './field_utils'
 import { checkbattleconditions } from './battle_utils'
 const AttackPhase = function(gs, ui, controller) {
@@ -69,39 +69,41 @@ const AttackPhase = function(gs, ui, controller) {
 					
 				    },
 				    desc:"Front"
-				},
-				{
-				    exec() {
-
-					_attack_type = 'side'
-					_pos = pos1;
-					return of(gs
-						  .updateIn([currentplayer(gs), 'stage'].concat(pos1),
-							    cards =>
-							    cards.update(0,
-									 card => card.updateIn(['status'], _ => Status.rest()).updateIn(['active','soul'], s => {
-									     let o = gs.getIn([inactiveplayer(gs), 'stage'].concat(oppos))
-									     if(List.isList(o) && iscard(o = o.first())) {
-										 
- 										 // let level = o.getIn(['active','level'])
-										 // if(typeof level === 'function')
-										 //     level = level(gs)
-										 let level = level_calc(o, gs)
-										 return gs => {
-										     if(typeof s === 'function') {
-											 return s(gs) - level
+				}]
+			    if(can_side_attack(card, gs)) {
+				actions.push(
+				    {
+					exec() {
+					    
+					    _attack_type = 'side'
+					    _pos = pos1;
+					    return of(gs
+						      .updateIn([currentplayer(gs), 'stage'].concat(pos1),
+								cards =>
+								cards.update(0,
+									     card => card.updateIn(['status'], _ => Status.rest()).updateIn(['active','soul'], s => {
+										 let o = gs.getIn([inactiveplayer(gs), 'stage'].concat(oppos))
+										 if(List.isList(o) && iscard(o = o.first())) {
+										     
+ 										     // let level = o.getIn(['active','level'])
+										     // if(typeof level === 'function')
+										     //     level = level(gs)
+										     let level = level_calc(o, gs)
+										     return gs => {
+											 if(typeof s === 'function') {
+											     return s(gs) - level
+											 }
+											 return s - level;
 										     }
-										     return s - level;
 										 }
-									     }
-									     return s
-									 }))))
+										 return s
+									     }))))
 
 
-				    },
-				    desc:"Side" 
-				}
-			    ]
+					},
+					desc:"Side" 
+				    })
+			    }
 			}
 			else {
 			    actions = [

@@ -84,15 +84,17 @@ function search(filter = charfilter) {
 // cost is a function which updates the state based on cost payment
 // action is a function which takes the number of times to perform, and the current game state;
 function brainstorm(cost, action) {
-    return (gs, ui) => {
-	return of(cost(gs))
+    return (gs, ui, id) => {
+	return of(gs)
+	    .map(cost)
 	    .mergeMap(gs => {
 		let numclimaxes = 0
 		let gs2 = drawfromdeck(4, 'waiting_room', gs, c => {
 		    if(isclimax(c)) numclimaxes++
 		})
-		
-		return action(ui, numclimaxes, gs2)
+		if(numclimaxes > 0)
+		    return action(ui, numclimaxes, gs2)
+		return of(gs2)
 
 	    })
     }

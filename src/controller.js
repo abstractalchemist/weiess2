@@ -32,15 +32,23 @@ import { Status } from './battle_const'
   
   },
 
+  - continous abilities have function signatures of card, gs, id
   continuous: {
-     power(card,gs)
-     soul(card,gs)
-     level(card,gs)
-     cost(card,gs)
+    card - the card currently being affected
+    gs -  the game state
+    id - the card whose continous ability is being invoked
+
+     power(card,gs,id)
+     soul(card,gs,id)
+     level(card,gs,id)
+     cost(card,gs,id)
  }
 
-// returns auto abilities that active based on an event;  must return a immutable List of (func => { prompt, id }) function to prompt the user to take an action
-  auto_abilities(evt,gs) 
+// returns auto abilities that active based on an event;  must return a immutable List of (func => { prompt, id }) function(evt,gs, ui)  to prompt the user to take an action
+evt - the current event
+gs = the current gamestate
+id - the id of the card whose ability is being invoked
+  auto_abilities(evt,gs, id) 
 
   // this is a function which return a list of { exec, desc } actions to be executed, or no
   availableactions: function(gs, evt) {
@@ -382,7 +390,7 @@ const ControllerFactory = function(game_state) {
 						id:'stage-select',
 						prompt: 
 						    <StageSelector onselect={
-							([deststage, destpos]) => {
+							([[deststage, destpos]]) => {
 							    let cardpos = gs.getIn([currentplayer(gs), 'stage', srcstage, srcpos])
 							    let carddes = undefined
 							    if(destpos) {

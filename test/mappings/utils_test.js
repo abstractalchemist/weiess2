@@ -2,7 +2,7 @@ import { mount } from 'enzyme'
 import { expect } from 'chai'
 import { init, basecard } from '../utils'
 import React from 'react'
-import { attributecurrentturn, selectforpowerandsoul, findAndRemoveCard, DrawSelect } from '../../src/mappings/utils'
+import { attributecurrentturn, selectforpowerandsoul, findAndRemoveCard, DrawSelect, Bond } from '../../src/mappings/utils'
 
 describe('mapping utils test', function() {
 
@@ -58,5 +58,18 @@ describe('mapping utils test', function() {
 	expect(obj.state('current_action')).to.equal('Pay')
     })
 
-    
+    it('<Bond />', function() {
+	let [gs, _ ] = init('main', 0)
+	let bondFor = basecard(1000)
+	gs = gs.updateIn(['player1','hand'], hand => hand.push(basecard()))
+	const obj = mount(<Bond cancelhandler={
+	    _ => {
+	    }
+	} onend={
+	    _ => {
+	    }
+	} cardid={bondFor.getIn(['info','id'])} gs={gs}/>)
+	obj.find("#bond-action").simulate('click')
+	
+    })
 })

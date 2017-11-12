@@ -19,6 +19,10 @@ class CardDisplay extends React.Component {
     }
 
     render() {
+	let allow_additions = {enabled:true}
+	if(this.state.selected == this.props.selectupto) {
+	    allow_additions = {disabled:true}
+	}
 	return (<div className='mdl-dialog__content' style={
 	    ( _ => {
 		if(this.props.cards && this.props.cards.length > 0)
@@ -26,13 +30,14 @@ class CardDisplay extends React.Component {
 		return {}
 	    })()
 	}><div style={{alignSelf:"flex-end",backgroundColor:"white"}}>
+		{`Select ${this.props.selectupto - this.state.selected}`}
 		<button id='select-card' className="mdl-button mdl-js-button mdl-button--icon" onClick={
 		    evt => {
 			console.log(`found ${this.props.cards[this.state.i]} from ${this.state.i}`)
 			this.props.clickhandler(this.props.cards[this.state.i].info.id)
 			this.setState({selected:this.state.selected + 1})
 		    }
-		} enabled={"" + (this.state.selected <= this.props.selectupto)}>
+		} {...allow_additions} >
 		<i className="material-icons">add</i>
 		</button>
 		<input className="mdl-slider mdl-js-slider" type="range" value={this.state.i} onChange={

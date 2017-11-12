@@ -62,6 +62,8 @@ function findAndRemoveCard(id, field, gs, player) {
     return [card, gs.updateIn([player, field], f => f.filter(c => c.getIn(['info','id']) !== id))]
 }
 
+
+
 /*
 properties
 - draw_count - number of cards to draw
@@ -78,7 +80,10 @@ class DrawSelect extends React.Component {
     componentDidUpdate() {
 	componentHandler.upgradeDom();
     }
-    
+
+    componentDidMount() {
+	componentHandler.upgradeDom();
+    }
     
     clickhandler() {
 	console.log(`current action is ${this.state.current_action}`)
@@ -106,7 +111,7 @@ class DrawSelect extends React.Component {
 	case "Pay": {
 
 	    this.setState({actionDesc:[<p key="desc">Select A Card From Hand</p>,
-				       <CardDisplay key="hand-display" selectupto={1} cards={this.state.game_state.getIn([currentplayer(this.state.game_state), 'hand']).toJS()}
+ 				       <CardDisplay key="hand-display" selectupto={1} cards={this.state.game_state.getIn([currentplayer(this.state.game_state), 'hand']).toJS()}
 				       clickhandler={
 					   id => {
 					       let [card, gs] = findAndRemoveCard(id, 'hand', this.state.game_state)
@@ -120,7 +125,9 @@ class DrawSelect extends React.Component {
 	    break;
 	case "Select": {
 	    this.setState({actionDesc:[<p key="desc">Select Card from Waiting Room</p>,
-				       <CardDisplay key="waiting-room-display" selectupto={1} cards={this.state.game_state.getIn([currentplayer(this.state.game_state), 'waiting_room']).toJS()}
+				       <CardDisplay key="waiting-room-display"
+				       selectupto={1}
+				       cards={this.state.game_state.getIn([currentplayer(this.state.game_state), 'waiting_room']).filter(c => c.getIn(['info','power']) > 0).toJS()}
 				       clickhandler={
 					   id => {
 					       let [card, gs] = findAndRemoveCard(id, 'waiting_room', this.state.game_state)
@@ -188,4 +195,94 @@ function findoccupiedpositions(gs, player) {
     return positions;
 }
 
-export { attributecurrentturn, selectforpowerandsoul, findAndRemoveCard, DrawSelect, isinfront, findoccupiedpositions }
+/*
+Handle ui for bond actions
+cardid -
+gs - 
+onend -
+cancelhandler -
+*/
+class Bond extends React.Component {
+    constructor(props) {
+	super(props)
+	this.state = { enable_ok : true, actionDesc: "Pay For Bond Action", current_action: "Pay", game_state: props.gs, cardid: props.cardid }
+    }
+
+    componentDidUpdate() {
+	componentHandler.upgradeDom();
+    }
+
+    componentDidMount() {
+	componentHandler.upgradeDom();
+    }
+
+    
+    clickhandler() {
+	console.log(`*********************************************** processing current action ${this.state.current_action}`)
+	switch(this.state.current_action) {
+	    
+	case "Pay" : {
+	    this.setState({ actionDesc:[<p key="desc">Select A Card From Hand</p>,
+ 					<CardDisplay key="hand-display" selectupto={1} cards={this.state.game_state.getIn([currentplayer(this.state.game_state), 'hand']).toJS()}
+					clickhandler={
+					    id => {
+						let [card, gs] = findAndRemoveCard(id, 'hand', this.state.game_state)
+						
+						this.setState({ current_action:"End",
+								actionDesc:"Select End To Continue",
+								enable_ok:true,
+								game_state:gs
+								.updateIn([currentplayer(gs), 'waiting_room'], wr => wr.unshift(card))})				   
+					    }}/>], current_action:"End", enable_ok:false})
+	}
+	    break;
+	case "End" : {
+	    let gs = this.state.game_state
+	    let wr = gs.getIn([currentplayer(gs), 'waiting_room'])
+	    let card = wr.find(c => c.getIn(['info','id']).startsWith(this.props.cardid))
+	    if(card) {
+		gs = gs.updateIn([currentplayer(gs), 'waiting_room'], wr => wr.filter(c => c.getIn(['info','id']) !== card.getIn(['info','id'])))
+		    .updateIn([currentplayer(gs), 'hand'], hand => hand.push(card))
+	    }
+	    this.props.onend(gs)
+	}
+	    break;
+	default: {
+	}
+	    break;
+	}
+    }
+
+    render() {
+	let enabled = { enabled: "true" }
+	if(!this.state.enable_ok) {
+	    enabled = { disabled: "true" }
+	}
+	return (<dialog id='bond-handler'>
+		<div className="mdl-dialog__contents">
+		{this.state.actionDesc}
+		</div>
+		<div className="mdl-dialog__actions">
+		<button id="bond-action" {...enabled} onClick={this.clickhandler.bind(this)}>
+		{this.state.current_action}
+		</button>
+		<button id="bond-cancel" onClick={
+		    evt => {
+			this.props.cancelhandler()
+		    }
+		}>
+		Cancel
+		</button>
+		</div>
+		</dialog>)
+    }
+}
+
+function convertId(id) {
+    if(id) {
+	return id.toLowerCase().replace("/","_").replace("-","_")
+    }
+    throw new Error("Must pass a valid id")
+}
+
+export { attributecurrentturn, selectforpowerandsoul, findAndRemoveCard, DrawSelect, isinfront, findoccupiedpositions, Bond, convertId }

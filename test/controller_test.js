@@ -351,7 +351,7 @@ describe('ControllerFactory', function() {
 		})
 	
     })
-    it('main - activated ability ( brainstorm )', function(done) {
+    xit('main - activated ability ( brainstorm )', function(done) {
 	let [gs, controller] = init('main', 0, {
 	    updateUI(gs, obs, evt) {
 		//		console.log(`entering update with gs? ${gs !== undefined}, ${obs}, ${evt}`)
@@ -401,7 +401,7 @@ describe('ControllerFactory', function() {
 //		    console.log(`no obs`)
 		}
 	    },
-	    prompt:createprompt
+	    prompt:createprompt()
 	})
 	controller.updategamestate(gs = gs
 				   .updateIn([currentplayer(gs), 'stock'], stock => stock.push(basecard()))

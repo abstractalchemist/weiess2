@@ -67,7 +67,8 @@ function getId(gs, player, pos) {
 function findbase(card, gs, type) {
     if(!card)
 	return -1
-    
+
+    // finds the card on the stage if only an id given
     if(!iscard(card)) {
 	let id = card;
 	// then is id
@@ -106,7 +107,7 @@ function findbase(card, gs, type) {
     base += collectactivateablecards(gs).map(c => {
     	let func;
     	if(func = c.getIn(['continous',type]))
-    	    return func(card, gs)
+    	    return func(card, gs, c.getIn(['info','id']))
     	return 0;
     })
 	.reduce( (R,T) => {
@@ -138,4 +139,17 @@ function cost_calc(card, gs) {
     return cost
 }
 
-export { power_calc, soul_calc, level_calc, cost_calc, collectactivateablecards }
+function can_side_attack(card, gs) {
+    let otherfunc = card.getIn(['continous','other'])
+    let this_card_can_side_attack = otherfunc === undefined || (typeof otherfunc === 'function' && otherfunc({ context:"can_side_attack"}, card, gs))
+    collectactivateablecards(gs).map(c => {
+	let func;
+	if(func = c.getIn(['continous', 'other']))
+	    this_card_can_side_attack = this_card_can_side_attack && func({context:"allows_side_attacking"})
+	
+    })
+    return this_card_can_side_attack;
+
+}
+				   
+export { power_calc, soul_calc, level_calc, cost_calc, collectactivateablecards, can_side_attack }
